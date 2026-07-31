@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using InventoryManagement.Api.Validation;
+using InventoryManagement.Domain.Authorization;
 
 namespace InventoryManagement.Api.Controllers;
 
@@ -30,6 +31,7 @@ public sealed class ProductsController(IInventoryDbContext db, IFileStorage file
     }
 
     [HttpPost]
+    [Authorize(Roles = UserRoles.Admin)]
     public async Task<ActionResult<ProductResponse>> Create(CreateProductRequest request, CancellationToken ct)
     {
         if (await db.Products.AnyAsync(x => x.Sku == request.Sku.ToUpper(), ct))
@@ -42,6 +44,7 @@ public sealed class ProductsController(IInventoryDbContext db, IFileStorage file
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = UserRoles.Admin)]
     public async Task<ActionResult<ProductResponse>> Update(Guid id, UpdateProductRequest request, CancellationToken ct)
     {
         var product = await db.Products.SingleOrDefaultAsync(x => x.Id == id, ct);
@@ -70,6 +73,7 @@ public sealed class ProductsController(IInventoryDbContext db, IFileStorage file
         .Select(x => new { x.Id, x.Quantity, x.Reason, x.PerformedByUserId, x.CreatedAtUtc }).ToListAsync(ct));
 
     [HttpPost("{id:guid}/image")]
+    [Authorize(Roles = UserRoles.Admin)]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(ProductImageValidator.MaximumFileSize)]
     public async Task<ActionResult<ProductResponse>> UploadImage(Guid id, IFormFile file, CancellationToken ct)

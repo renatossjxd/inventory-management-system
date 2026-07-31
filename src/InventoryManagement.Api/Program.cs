@@ -1,4 +1,5 @@
 using System.Text;
+using System.IdentityModel.Tokens.Jwt;
 using InventoryManagement.Application.Abstractions;
 using InventoryManagement.Infrastructure;
 using InventoryManagement.Infrastructure.Persistence;
@@ -34,6 +35,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            NameClaimType = JwtRegisteredClaimNames.Name,
+            RoleClaimType = "role",
             ClockSkew = TimeSpan.FromMinutes(1)
         };
     });

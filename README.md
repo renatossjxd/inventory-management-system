@@ -7,6 +7,8 @@ API REST profesional para administrar productos y movimientos de inventario. El 
 ## Funcionalidad del primer incremento
 
 - Registro e inicio de sesión con JWT.
+- Roles `Admin` y `Operator` con autorización por endpoint.
+- Creación segura del administrador inicial y alta posterior de usuarios solo por administradores.
 - Contraseñas protegidas con PBKDF2, salt aleatorio y comparación en tiempo constante.
 - Crear, consultar y actualizar productos.
 - Registrar entradas y salidas de inventario con trazabilidad del usuario.
@@ -67,14 +69,15 @@ dotnet user-secrets set "Jwt:Key" "<32-or-more-random-characters>" --project src
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| POST | `/api/auth/register` | Crea el primer usuario administrador |
+| POST | `/api/auth/register` | Crea el Admin inicial; después requiere Admin y permite asignar un rol |
 | POST | `/api/auth/login` | Obtiene un token JWT |
+| GET | `/api/auth/users` | Lista usuarios; requiere rol Admin |
 | GET | `/api/products?lowStock=true` | Lista y filtra productos |
-| POST | `/api/products` | Crea un producto |
-| PUT | `/api/products/{id}` | Actualiza un producto |
+| POST | `/api/products` | Crea un producto; requiere rol Admin |
+| PUT | `/api/products/{id}` | Actualiza un producto; requiere rol Admin |
 | POST | `/api/products/{id}/stock-movements` | Registra entrada o salida |
 | GET | `/api/products/{id}/stock-movements` | Consulta el historial |
-| POST | `/api/products/{id}/image` | Sube o reemplaza la imagen del producto |
+| POST | `/api/products/{id}/image` | Sube o reemplaza la imagen; requiere rol Admin |
 
 ## Preparación para Azure
 
@@ -96,8 +99,7 @@ GitHub Actions ejecuta estas validaciones automáticamente en cada cambio enviad
 
 ## Próximos incrementos
 
-1. Roles `Admin` y `Operator` con políticas de autorización.
-2. Categorías, proveedores y órdenes de compra.
-3. Paginación, búsqueda y dashboard de indicadores.
-4. Pruebas de integración con SQL Server y Azurite en contenedores.
-5. Despliegue continuo a Azure App Service.
+1. Categorías, proveedores y órdenes de compra.
+2. Paginación, búsqueda y dashboard de indicadores.
+3. Pruebas de integración con SQL Server y Azurite en contenedores.
+4. Despliegue continuo a Azure App Service.

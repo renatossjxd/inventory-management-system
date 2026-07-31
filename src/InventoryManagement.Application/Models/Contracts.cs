@@ -1,8 +1,9 @@
 namespace InventoryManagement.Application.Models;
 
-public sealed record RegisterRequest(string Email, string DisplayName, string Password);
+public sealed record RegisterRequest(string Email, string DisplayName, string Password, string? Role = null);
 public sealed record LoginRequest(string Email, string Password);
 public sealed record AuthResponse(string AccessToken, string TokenType = "Bearer");
+public sealed record UserResponse(Guid Id, string Email, string DisplayName, string Role, DateTime CreatedAtUtc);
 public sealed record CreateProductRequest(string Sku, string Name, decimal Price, int MinimumStock, string? Description);
 public sealed record UpdateProductRequest(string Sku, string Name, decimal Price, int MinimumStock, string? Description);
 public sealed record AdjustStockRequest(int Quantity, string Reason);
