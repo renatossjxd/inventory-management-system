@@ -10,9 +10,14 @@ services:
       Jwt__Audience: InventoryManagement.Client
       Jwt__Key: ${JWT_KEY}
       Database__MigrateOnStartup: "true"
+      BlobStorage__ConnectionString: DefaultEndpointsProtocol=http;AccountName=inventory;AccountKey=aW52ZW50b3J5LWxvY2FsLWRldmVsb3BtZW50LWtleS0yMDI2LW11c3QtYmUtMzItYnl0ZXM=;BlobEndpoint=http://azurite:10000/inventory;
+      BlobStorage__ContainerName: product-images
+      BlobStorage__PublicBaseUrl: http://localhost:10000/inventory/product-images
     depends_on:
       sqlserver:
         condition: service_healthy
+      azurite:
+        condition: service_started
 
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -30,5 +35,16 @@ services:
       retries: 10
       start_period: 20s
 
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    command: azurite-blob --blobHost 0.0.0.0 --loose --skipApiVersionCheck
+    environment:
+      AZURITE_ACCOUNTS: inventory:aW52ZW50b3J5LWxvY2FsLWRldmVsb3BtZW50LWtleS0yMDI2LW11c3QtYmUtMzItYnl0ZXM=
+    ports:
+      - "10000:10000"
+    volumes:
+      - blob-data:/data
+
 volumes:
   sql-data:
+  blob-data:

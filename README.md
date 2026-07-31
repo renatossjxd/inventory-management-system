@@ -12,6 +12,8 @@ API REST profesional para administrar productos y movimientos de inventario. El 
 - Registrar entradas y salidas de inventario con trazabilidad del usuario.
 - Regla de negocio que impide stock negativo.
 - Consulta de productos con stock bajo.
+- Carga y reemplazo de imágenes JPEG, PNG y WebP en Azure Blob Storage.
+- Validación del contenido real y límite de 5 MB para las imágenes.
 - Migración inicial de Entity Framework Core.
 - Swagger UI en `/swagger` y health check en `/health`.
 
@@ -41,7 +43,7 @@ Requisitos: Docker Desktop.
 docker compose up --build
 ```
 
-Abre `http://localhost:8080/swagger`. Registra un usuario, copia el token y autorízate con el botón **Authorize**.
+Abre `http://localhost:8080/swagger`. Registra un usuario, copia el token y autorízate con el botón **Authorize**. Docker también inicia Azurite, el emulador local compatible con Azure Blob Storage, en `http://localhost:10000`.
 
 ## Ejecutar con .NET
 
@@ -72,12 +74,13 @@ dotnet user-secrets set "Jwt:Key" "<32-or-more-random-characters>" --project src
 | PUT | `/api/products/{id}` | Actualiza un producto |
 | POST | `/api/products/{id}/stock-movements` | Registra entrada o salida |
 | GET | `/api/products/{id}/stock-movements` | Consulta el historial |
+| POST | `/api/products/{id}/image` | Sube o reemplaza la imagen del producto |
 
 ## Preparación para Azure
 
 - **Azure App Service:** la API escucha el puerto indicado por ASP.NET y cuenta con `/health`.
 - **Azure SQL:** solo hay que definir `ConnectionStrings__InventoryDb` en App Service; el proveedor ya es SQL Server.
-- **Azure Blob Storage:** `ImageUrl` está contemplado en el producto. La carga real de imágenes se implementará en el siguiente incremento mediante una abstracción de almacenamiento, identidad administrada y el SDK de Blob Storage.
+- **Azure Blob Storage:** las imágenes se gestionan mediante `IFileStorage` y el SDK oficial. En Azure se configura `BlobStorage__ConnectionString`, `BlobStorage__ContainerName` y, opcionalmente, `BlobStorage__PublicBaseUrl`.
 - **Secretos:** configurar `Jwt__Key` y la cadena de conexión en App Service/Key Vault; nunca guardarlos en `appsettings.json` de producción.
 - **Migraciones:** para producción se recomienda ejecutarlas desde CI/CD antes del despliegue y mantener `Database__MigrateOnStartup=false`.
 
@@ -93,9 +96,8 @@ GitHub Actions ejecuta estas validaciones automáticamente en cada cambio enviad
 
 ## Próximos incrementos
 
-1. Azure Blob Storage para imágenes de productos.
-2. Roles `Admin` y `Operator` con políticas de autorización.
-3. Categorías, proveedores y órdenes de compra.
-4. Paginación, búsqueda y dashboard de indicadores.
-5. Pruebas de integración con SQL Server en contenedor.
-6. CI/CD con GitHub Actions y despliegue a Azure.
+1. Roles `Admin` y `Operator` con políticas de autorización.
+2. Categorías, proveedores y órdenes de compra.
+3. Paginación, búsqueda y dashboard de indicadores.
+4. Pruebas de integración con SQL Server y Azurite en contenedores.
+5. Despliegue continuo a Azure App Service.

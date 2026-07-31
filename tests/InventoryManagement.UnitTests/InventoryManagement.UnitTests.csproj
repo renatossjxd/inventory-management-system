@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\InventoryManagement.Api\InventoryManagement.Api.csproj" />
     <ProjectReference Include="..\..\src\InventoryManagement.Domain\InventoryManagement.Domain.csproj" />
   </ItemGroup>
 
