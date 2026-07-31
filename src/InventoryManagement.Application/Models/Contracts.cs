@@ -23,3 +23,20 @@ public sealed record PurchaseOrderItemResponse(Guid ProductId, string Sku, strin
 public sealed record PurchaseOrderResponse(Guid Id, string Number, Guid SupplierId, string SupplierName,
     string Status, decimal Total, Guid CreatedByUserId, Guid? ReceivedByUserId, DateTime CreatedAtUtc,
     DateTime? ReceivedAtUtc, IReadOnlyList<PurchaseOrderItemResponse> Items);
+public sealed record PagedResponse<T>(IReadOnlyList<T> Items, int Page, int PageSize, int TotalCount,
+    int TotalPages);
+public sealed record DashboardRecentMovementResponse(Guid Id, Guid ProductId, string ProductName,
+    int Quantity, string Reason, DateTime CreatedAtUtc);
+public sealed record DashboardResponse(int ProductCount, int TotalStockUnits, decimal InventoryValue,
+    int LowStockCount, int PendingPurchaseOrders, int ReceivedPurchaseOrdersThisMonth,
+    IReadOnlyList<ProductResponse> LowStockProducts,
+    IReadOnlyList<DashboardRecentMovementResponse> RecentMovements);
+
+public static class Pagination
+{
+    public const int DefaultPageSize = 20;
+    public const int MaximumPageSize = 100;
+
+    public static (int Page, int PageSize) Normalize(int page, int pageSize) =>
+        (Math.Max(1, page), Math.Clamp(pageSize, 1, MaximumPageSize));
+}
