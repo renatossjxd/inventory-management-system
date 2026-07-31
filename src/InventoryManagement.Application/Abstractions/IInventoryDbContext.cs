@@ -23,3 +23,10 @@ public interface ITokenService
 {
     string Create(AppUser user);
 }
+
+public interface IFileStorage
+{
+    Task<string> UploadImageAsync(Stream content, string fileName, string contentType,
+        CancellationToken cancellationToken = default);
+    Task DeleteAsync(string fileUrl, CancellationToken cancellationToken = default);
+}
