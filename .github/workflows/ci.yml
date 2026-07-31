@@ -59,3 +59,36 @@ jobs:
           path: TestResults/*.trx
           if-no-files-found: warn
           retention-days: 7
+
+  integration-test:
+    name: Integration test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SQL_PASSWORD: Integration_2026_Strong!
+      JWT_KEY: integration-jwt-key-2026-with-at-least-32-characters
+      INTEGRATION_ADMIN_EMAIL: integration.admin@inventory.local
+      INTEGRATION_ADMIN_PASSWORD: Integration_2026!
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python for response assertions
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Start API, SQL Server and Azurite
+        run: docker compose up --detach --build
+
+      - name: Run end-to-end API test
+        run: bash tests/integration/api-smoke-test.sh
+
+      - name: Capture container logs
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Stop integration environment
+        if: always()
+        run: docker compose down --volumes
