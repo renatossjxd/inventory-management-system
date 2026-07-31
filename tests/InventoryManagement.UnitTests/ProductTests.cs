@@ -1,4 +1,5 @@
 using InventoryManagement.Domain.Entities;
+using InventoryManagement.Domain.Authorization;
 
 namespace InventoryManagement.UnitTests;
 
@@ -20,5 +21,24 @@ public sealed class ProductTests
         Assert.Equal(5, product.CurrentStock);
         Assert.Single(product.Movements);
         Assert.False(product.IsLowStock);
+    }
+}
+
+public sealed class AppUserTests
+{
+    [Theory]
+    [InlineData("admin", UserRoles.Admin)]
+    [InlineData("OPERATOR", UserRoles.Operator)]
+    public void Constructor_NormalizesSupportedRole(string input, string expected)
+    {
+        var user = new AppUser("user@example.com", "User", "hash", "salt", input);
+        Assert.Equal(expected, user.Role);
+    }
+
+    [Fact]
+    public void Constructor_RejectsUnknownRole()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            new AppUser("user@example.com", "User", "hash", "salt", "SuperAdmin"));
     }
 }
