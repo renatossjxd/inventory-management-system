@@ -1,5 +1,7 @@
 # Inventory Management System
 
+[![Continuous Integration](https://github.com/renatossjxd/inventory-management-system/actions/workflows/ci.yml/badge.svg)](https://github.com/renatossjxd/inventory-management-system/actions/workflows/ci.yml)
+
 API REST profesional para administrar productos y movimientos de inventario. El proyecto demuestra un flujo completo con ASP.NET Core, arquitectura limpia, SQL Server, Entity Framework Core, JWT, Swagger, pruebas y contenedores.
 
 ## Funcionalidad del primer incremento
@@ -86,6 +88,8 @@ dotnet build InventoryManagement.slnx
 dotnet test InventoryManagement.slnx
 dotnet list InventoryManagement.slnx package --vulnerable --include-transitive
 ```
+
+GitHub Actions ejecuta estas validaciones automáticamente en cada cambio enviado a `main` y en cada pull request. Los resultados de las pruebas quedan disponibles como artefacto descargable durante siete días.
 
 ## Próximos incrementos
 
