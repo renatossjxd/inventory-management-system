@@ -9,6 +9,7 @@ public interface IInventoryDbContext
     IQueryable<AppUser> Users { get; }
     IQueryable<Category> Categories { get; }
     IQueryable<Supplier> Suppliers { get; }
+    IQueryable<PurchaseOrder> PurchaseOrders { get; }
     void AddProduct(Product product);
     void AddStockMovement(StockMovement movement);
     void AddUser(AppUser user);
@@ -16,6 +17,7 @@ public interface IInventoryDbContext
     void AddSupplier(Supplier supplier);
     void RemoveCategory(Category category);
     void RemoveSupplier(Supplier supplier);
+    void AddPurchaseOrder(PurchaseOrder purchaseOrder);
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
 

@@ -64,3 +64,31 @@ public sealed class CatalogTests
         Assert.Throws<ArgumentException>(() => new Supplier("Proveedor", "correo-invalido"));
     }
 }
+
+public sealed class PurchaseOrderTests
+{
+    [Fact]
+    public void Receive_AddsStockAndCannotBeRepeated()
+    {
+        var supplier = new Supplier("Proveedor");
+        var product = new Product("SKU-PO", "Mouse", 100, 1);
+        product.AssignClassification(new Category("Periféricos"), supplier);
+        var order = new PurchaseOrder(supplier, Guid.NewGuid(), [(product, 5, 60m)]);
+
+        var movements = order.Receive(Guid.NewGuid());
+
+        Assert.Equal(PurchaseOrderStatus.Received, order.Status);
+        Assert.Equal(5, product.CurrentStock);
+        Assert.Single(movements);
+        Assert.Throws<InvalidOperationException>(() => order.Receive(Guid.NewGuid()));
+    }
+
+    [Fact]
+    public void Constructor_RejectsRepeatedProducts()
+    {
+        var supplier = new Supplier("Proveedor");
+        var product = new Product("SKU-PO", "Mouse", 100, 1);
+        Assert.Throws<ArgumentException>(() => new PurchaseOrder(supplier, Guid.NewGuid(),
+            [(product, 1, 50m), (product, 2, 50m)]));
+    }
+}

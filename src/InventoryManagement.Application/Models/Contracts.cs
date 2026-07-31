@@ -16,3 +16,10 @@ public sealed record CategoryRequest(string Name, string? Description);
 public sealed record CategoryResponse(Guid Id, string Name, string? Description, DateTime CreatedAtUtc);
 public sealed record SupplierRequest(string Name, string? Email, string? Phone);
 public sealed record SupplierResponse(Guid Id, string Name, string? Email, string? Phone, DateTime CreatedAtUtc);
+public sealed record CreatePurchaseOrderItemRequest(Guid ProductId, int Quantity, decimal UnitCost);
+public sealed record CreatePurchaseOrderRequest(Guid SupplierId, IReadOnlyList<CreatePurchaseOrderItemRequest> Items);
+public sealed record PurchaseOrderItemResponse(Guid ProductId, string Sku, string ProductName, int Quantity,
+    decimal UnitCost, decimal Subtotal);
+public sealed record PurchaseOrderResponse(Guid Id, string Number, Guid SupplierId, string SupplierName,
+    string Status, decimal Total, Guid CreatedByUserId, Guid? ReceivedByUserId, DateTime CreatedAtUtc,
+    DateTime? ReceivedAtUtc, IReadOnlyList<PurchaseOrderItemResponse> Items);
