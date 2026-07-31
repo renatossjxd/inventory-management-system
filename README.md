@@ -109,8 +109,14 @@ dotnet list InventoryManagement.slnx package --vulnerable --include-transitive
 
 GitHub Actions ejecuta estas validaciones automáticamente en cada cambio enviado a `main` y en cada pull request. Los resultados de las pruebas quedan disponibles como artefacto descargable durante siete días.
 
+La validación de integración inicia la API, SQL Server y Azurite en contenedores y comprueba el recorrido completo de autenticación, catálogo, movimientos, dashboard y carga de imágenes. Con el entorno local iniciado, también puede ejecutarse con:
+
+```bash
+bash tests/integration/api-smoke-test.sh
+```
+
 ## Próximos incrementos
 
-1. Pruebas de integración automatizadas con SQL Server y Azurite en contenedores.
-2. Exportación de reportes de inventario.
-3. Despliegue continuo a Azure App Service.
+1. Exportación de reportes de inventario.
+2. Despliegue continuo a Azure App Service.
+3. Interfaz web administrativa.
