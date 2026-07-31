@@ -1,4 +1,4 @@
-const state = { token: sessionStorage.getItem('inventoryToken'), user: null, page: 1, totalPages: 1, search: '', lowStock: false };
+const state = { token: sessionStorage.getItem('inventoryToken'), user: null, page: 1, totalPages: 1, search: '', lowStock: false, products: [] };
 const $ = (selector) => document.querySelector(selector);
 const money = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
 const number = new Intl.NumberFormat('es-CL');
@@ -35,6 +35,7 @@ function showApp() {
   $('#user-role').textContent = state.user.role || 'Operador';
   $('#user-initial').textContent = name[0].toUpperCase();
   $('#export-button').hidden = state.user.role !== 'Admin';
+  $('#new-product-button').hidden = state.user.role !== 'Admin';
   loadDashboard();
 }
 
@@ -82,11 +83,12 @@ async function loadProducts() {
     if (state.search) params.set('search', state.search);
     if (state.lowStock) params.set('lowStock', 'true');
     const data = await (await api(`/api/products?${params}`)).json();
-    state.totalPages = Math.max(1, data.totalPages);
-    $('#products-body').innerHTML = data.items.length ? data.items.map(p => `<tr><td><div class="product-name"><span class="product-symbol">${escapeHtml(p.name[0])}</span><div><strong>${escapeHtml(p.name)}</strong><small>${escapeHtml(p.sku)}</small></div></div></td><td>${escapeHtml(p.categoryName || 'Sin categoría')}</td><td class="price">${money.format(p.price)}</td><td>${number.format(p.currentStock)} / mín. ${number.format(p.minimumStock)}</td><td><span class="badge ${p.isLowStock ? 'danger' : ''}">${p.isLowStock ? 'Stock bajo' : 'Disponible'}</span></td></tr>`).join('') : '<tr><td colspan="5" class="empty">No encontramos productos para estos filtros.</td></tr>';
+    state.totalPages = Math.max(1, data.totalPages); state.products = data.items;
+    $('#products-body').innerHTML = data.items.length ? data.items.map(p => `<tr><td><div class="product-name"><span class="product-symbol">${escapeHtml(p.name[0])}</span><div><strong>${escapeHtml(p.name)}</strong><small>${escapeHtml(p.sku)}</small></div></div></td><td>${escapeHtml(p.categoryName || 'Sin categoría')}</td><td class="price">${money.format(p.price)}</td><td>${number.format(p.currentStock)} / mín. ${number.format(p.minimumStock)}</td><td><span class="badge ${p.isLowStock ? 'danger' : ''}">${p.isLowStock ? 'Stock bajo' : 'Disponible'}</span></td><td><div class="row-actions"><button class="stock-button" data-stock-id="${p.id}">Ajustar stock</button></div></td></tr>`).join('') : '<tr><td colspan="6" class="empty">No encontramos productos para estos filtros.</td></tr>';
     $('#product-count').textContent = `${number.format(data.totalCount)} producto${data.totalCount === 1 ? '' : 's'}`;
     $('#page-number').textContent = `${data.page} de ${state.totalPages}`;
     $('#previous-page').disabled = state.page <= 1; $('#next-page').disabled = state.page >= state.totalPages;
+    document.querySelectorAll('[data-stock-id]').forEach(button => button.addEventListener('click', () => { const product = state.products.find(x => x.id === button.dataset.stockId); if (product) openStockDialog(product.id, product.name); }));
   } catch (err) { toast(err.message); }
   finally { setLoading(false); }
 }
@@ -100,6 +102,32 @@ function changeView(view) {
 }
 
 function escapeHtml(value) { const el = document.createElement('span'); el.textContent = value ?? ''; return el.innerHTML; }
+async function loadCatalogOptions() {
+  const [categories, suppliers] = await Promise.all([api('/api/categories').then(r => r.json()), api('/api/suppliers').then(r => r.json())]);
+  $('#product-category').innerHTML = '<option value="">Selecciona una categoría</option>' + categories.map(x => `<option value="${x.id}">${escapeHtml(x.name)}</option>`).join('');
+  $('#product-supplier').innerHTML = '<option value="">Sin proveedor</option>' + suppliers.map(x => `<option value="${x.id}">${escapeHtml(x.name)}</option>`).join('');
+}
+async function openProductDialog() { try { await loadCatalogOptions(); $('#product-form').reset(); $('#product-dialog').showModal(); } catch (err) { toast(err.message); } }
+function openStockDialog(id, name) { const form = $('#stock-form'); form.reset(); form.elements.productId.value = id; $('#stock-product-name').textContent = name; $('#stock-dialog').showModal(); }
+function closeDialog(id) { document.getElementById(id).close(); }
+function formError(form, message = '') { const error = form.querySelector('[data-form-error]'); error.textContent = message; error.hidden = !message; }
+
+$('#product-form').addEventListener('submit', async event => {
+  event.preventDefault(); const form = event.currentTarget; formError(form); const submit = event.submitter; submit.disabled = true;
+  try {
+    const data = new FormData(form);
+    await api('/api/products', { method: 'POST', body: JSON.stringify({ sku:data.get('sku'), name:data.get('name'), price:Number(data.get('price')), minimumStock:Number(data.get('minimumStock')), description:data.get('description') || null, categoryId:data.get('categoryId'), supplierId:data.get('supplierId') || null }) });
+    closeDialog('product-dialog'); state.page = 1; await loadProducts(); toast('Producto creado correctamente.');
+  } catch (err) { formError(form, err.message); } finally { submit.disabled = false; }
+});
+$('#stock-form').addEventListener('submit', async event => {
+  event.preventDefault(); const form = event.currentTarget; formError(form); const submit = event.submitter; submit.disabled = true;
+  try {
+    const data = new FormData(form); const quantity = Number(data.get('quantity')); if (!Number.isInteger(quantity) || quantity === 0) throw new Error('La cantidad debe ser un número entero distinto de cero.');
+    await api(`/api/products/${data.get('productId')}/stock-movements`, { method:'POST', body:JSON.stringify({ quantity, reason:data.get('reason') }) });
+    closeDialog('stock-dialog'); await loadProducts(); toast('Movimiento registrado correctamente.');
+  } catch (err) { formError(form, err.message); } finally { submit.disabled = false; }
+});
 document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => changeView(button.dataset.view)));
 document.querySelectorAll('[data-go-products]').forEach(button => button.addEventListener('click', () => changeView('products')));
 $('#logout-button').addEventListener('click', logout);
@@ -109,5 +137,7 @@ $('#low-stock-filter').addEventListener('change', event => { state.lowStock = ev
 $('#previous-page').addEventListener('click', () => { if (state.page > 1) { state.page--; loadProducts(); } });
 $('#next-page').addEventListener('click', () => { if (state.page < state.totalPages) { state.page++; loadProducts(); } });
 $('#export-button').addEventListener('click', async () => { try { const params = new URLSearchParams(); if (state.search) params.set('search', state.search); if (state.lowStock) params.set('lowStock', 'true'); const response = await api(`/api/reports/inventory.csv?${params}`); const blob = await response.blob(); const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'inventario.csv'; anchor.click(); URL.revokeObjectURL(url); } catch (err) { toast(err.message); } });
+$('#new-product-button').addEventListener('click', openProductDialog);
+document.querySelectorAll('[data-close-dialog]').forEach(button => button.addEventListener('click', () => closeDialog(button.dataset.closeDialog)));
 
 if (state.token) showApp();
