@@ -75,10 +75,11 @@
             <div class="search-box"><span aria-hidden="true">⌕</span><input id="product-search" type="search" placeholder="Buscar por nombre, SKU o descripción"></div>
             <label class="check-filter"><input id="low-stock-filter" type="checkbox"> Solo stock bajo</label>
             <button id="export-button" class="button secondary">Descargar CSV</button>
+            <button id="new-product-button" class="button primary compact">Nuevo producto</button>
           </div>
           <div class="table-scroll">
             <table>
-              <thead><tr><th>Producto</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Estado</th></tr></thead>
+              <thead><tr><th>Producto</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Estado</th><th></th></tr></thead>
               <tbody id="products-body"></tbody>
             </table>
           </div>
@@ -90,6 +91,37 @@
       <div id="toast" class="toast" role="status" hidden></div>
     </main>
   </div>
+
+  <dialog id="product-dialog" class="modal">
+    <form id="product-form" class="modal-card">
+      <header><div><p class="eyebrow">NUEVO REGISTRO</p><h2>Crear producto</h2></div><button type="button" class="modal-close" data-close-dialog="product-dialog" aria-label="Cerrar">×</button></header>
+      <div class="form-grid">
+        <label>SKU<input name="sku" required maxlength="50" placeholder="Ej. TEC-001"></label>
+        <label>Nombre<input name="name" required maxlength="120" placeholder="Nombre del producto"></label>
+        <label>Precio<input name="price" required min="0" step="1" type="number" placeholder="29990"></label>
+        <label>Stock mínimo<input name="minimumStock" required min="0" step="1" type="number" placeholder="5"></label>
+        <label>Categoría<select name="categoryId" id="product-category" required></select></label>
+        <label>Proveedor<select name="supplierId" id="product-supplier"><option value="">Sin proveedor</option></select></label>
+        <label class="wide">Descripción<textarea name="description" rows="3" maxlength="500" placeholder="Descripción opcional"></textarea></label>
+      </div>
+      <p class="form-error" data-form-error hidden></p>
+      <footer><button type="button" class="button secondary" data-close-dialog="product-dialog">Cancelar</button><button type="submit" class="button primary compact">Guardar producto</button></footer>
+    </form>
+  </dialog>
+
+  <dialog id="stock-dialog" class="modal">
+    <form id="stock-form" class="modal-card small">
+      <header><div><p class="eyebrow">MOVIMIENTO</p><h2>Ajustar existencias</h2><p id="stock-product-name" class="muted"></p></div><button type="button" class="modal-close" data-close-dialog="stock-dialog" aria-label="Cerrar">×</button></header>
+      <input name="productId" type="hidden">
+      <div class="form-grid one-column">
+        <label>Cantidad<input name="quantity" required step="1" type="number" placeholder="Usa negativo para una salida"></label>
+        <small class="field-help">Ejemplo: <strong>10</strong> para una entrada o <strong>-3</strong> para una salida.</small>
+        <label>Motivo<textarea name="reason" required rows="3" maxlength="250" placeholder="Compra, venta, ajuste de inventario…"></textarea></label>
+      </div>
+      <p class="form-error" data-form-error hidden></p>
+      <footer><button type="button" class="button secondary" data-close-dialog="stock-dialog">Cancelar</button><button type="submit" class="button primary compact">Registrar movimiento</button></footer>
+    </form>
+  </dialog>
   <script src="/js/app.js" defer></script>
 </body>
 </html>
