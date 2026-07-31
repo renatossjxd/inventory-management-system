@@ -17,6 +17,7 @@ API REST profesional para administrar productos y movimientos de inventario. El 
 - Carga y reemplazo de imágenes JPEG, PNG y WebP en Azure Blob Storage.
 - Validación del contenido real y límite de 5 MB para las imágenes.
 - Catálogo de categorías y proveedores relacionado con los productos.
+- Órdenes de compra con recepción transaccional y actualización automática de stock.
 - Migración inicial de Entity Framework Core.
 - Swagger UI en `/swagger` y health check en `/health`.
 
@@ -83,6 +84,9 @@ dotnet user-secrets set "Jwt:Key" "<32-or-more-random-characters>" --project src
 | POST/PUT/DELETE | `/api/categories` | Administra categorías; requiere rol Admin |
 | GET | `/api/suppliers` | Lista proveedores |
 | POST/PUT/DELETE | `/api/suppliers` | Administra proveedores; requiere rol Admin |
+| GET/POST | `/api/purchase-orders` | Consulta o crea órdenes de compra |
+| POST | `/api/purchase-orders/{id}/receive` | Recibe mercadería y aumenta el stock |
+| POST | `/api/purchase-orders/{id}/cancel` | Cancela una orden pendiente; requiere Admin |
 
 ## Preparación para Azure
 
@@ -104,7 +108,6 @@ GitHub Actions ejecuta estas validaciones automáticamente en cada cambio enviad
 
 ## Próximos incrementos
 
-1. Órdenes de compra y recepción de mercadería.
-2. Paginación, búsqueda y dashboard de indicadores.
-3. Pruebas de integración con SQL Server y Azurite en contenedores.
-4. Despliegue continuo a Azure App Service.
+1. Paginación, búsqueda y dashboard de indicadores.
+2. Pruebas de integración con SQL Server y Azurite en contenedores.
+3. Despliegue continuo a Azure App Service.
