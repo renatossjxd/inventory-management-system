@@ -88,6 +88,7 @@ dotnet user-secrets set "Jwt:Key" "<32-or-more-random-characters>" --project src
 | POST | `/api/purchase-orders/{id}/receive` | Recibe mercadería y aumenta el stock |
 | POST | `/api/purchase-orders/{id}/cancel` | Cancela una orden pendiente; requiere Admin |
 | GET | `/api/dashboard` | Resume valor y unidades de inventario, stock bajo, órdenes y actividad reciente |
+| GET | `/api/reports/inventory.csv` | Descarga el inventario filtrado en CSV; requiere rol Admin |
 
 La respuesta de `GET /api/products` incluye `items`, `page`, `pageSize`, `totalCount` y `totalPages`. El tamaño máximo permitido es de 100 elementos por página.
 
@@ -117,6 +118,6 @@ bash tests/integration/api-smoke-test.sh
 
 ## Próximos incrementos
 
-1. Exportación de reportes de inventario.
-2. Despliegue continuo a Azure App Service.
-3. Interfaz web administrativa.
+1. Despliegue continuo a Azure App Service.
+2. Interfaz web administrativa.
+3. Notificaciones de stock bajo.

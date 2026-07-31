@@ -1,6 +1,7 @@
 using InventoryManagement.Domain.Entities;
 using InventoryManagement.Domain.Authorization;
 using InventoryManagement.Application.Models;
+using InventoryManagement.Application.Reports;
 
 namespace InventoryManagement.UnitTests;
 
@@ -37,6 +38,31 @@ public sealed class PaginationTests
 
         Assert.Equal(expectedPage, result.Page);
         Assert.Equal(expectedPageSize, result.PageSize);
+    }
+}
+
+public sealed class InventoryCsvExporterTests
+{
+    [Fact]
+    public void Escape_QuotesSeparatorsAndNeutralizesSpreadsheetFormulas()
+    {
+        Assert.Equal("\"Mouse; Gamer\"", InventoryCsvExporter.Escape("Mouse; Gamer"));
+        Assert.Equal("'=SUM(A1:A2)", InventoryCsvExporter.Escape("=SUM(A1:A2)"));
+        Assert.Equal("\"Monitor \"\"Pro\"\"\"", InventoryCsvExporter.Escape("Monitor \"Pro\""));
+    }
+
+    [Fact]
+    public void Build_UsesUtf8BomAndSpanishColumns()
+    {
+        var csv = InventoryCsvExporter.Build([
+            new InventoryReportRow("SKU-1", "Teclado", "Periféricos", "Proveedor", 1000, 3, 1,
+                false, 3000, new DateTime(2026, 7, 31, 12, 0, 0, DateTimeKind.Utc))
+        ]);
+
+        Assert.Equal([0xEF, 0xBB, 0xBF], csv[..3]);
+        var text = System.Text.Encoding.UTF8.GetString(csv);
+        Assert.Contains("Categoría", text);
+        Assert.Contains("SKU-1;Teclado;Periféricos;Proveedor", text);
     }
 }
 

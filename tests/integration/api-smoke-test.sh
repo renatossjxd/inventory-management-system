@@ -78,4 +78,8 @@ status="$(request GET /api/dashboard '' "$work_dir/dashboard.json")"
 assert_status "$status" 200 "$work_dir/dashboard.json"
 python -c 'import json,sys; data=json.load(open(sys.argv[1])); assert data["productCount"] >= 1 and data["totalStockUnits"] >= 5 and data["inventoryValue"] >= 74950' "$work_dir/dashboard.json"
 
-echo "Prueba de integración completada: autenticación, SQL Server, inventario, dashboard y Blob Storage correctos."
+status="$(request GET "/api/reports/inventory.csv?search=INT-$run_id" '' "$work_dir/inventory.csv")"
+assert_status "$status" 200 "$work_dir/inventory.csv"
+python -c 'import sys; text=open(sys.argv[1],encoding="utf-8-sig").read(); assert "SKU;Producto;Categoría" in text and sys.argv[2] in text' "$work_dir/inventory.csv" "INT-$run_id"
+
+echo "Prueba de integración completada: autenticación, SQL Server, inventario, dashboard, reportes y Blob Storage correctos."
