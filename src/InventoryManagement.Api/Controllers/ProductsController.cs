@@ -18,7 +18,7 @@ public sealed class ProductsController(IInventoryDbContext db, IFileStorage file
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<ProductResponse>>> GetAll([FromQuery] bool? lowStock, CancellationToken ct)
     {
-        var query = db.Products.AsNoTracking();
+        IQueryable<Product> query = db.Products.AsNoTracking().Include(x => x.Category).Include(x => x.Supplier);
         if (lowStock is true) query = query.Where(x => x.CurrentStock <= x.MinimumStock);
         return Ok(await query.OrderBy(x => x.Name).Select(x => Map(x)).ToListAsync(ct));
     }
@@ -26,7 +26,8 @@ public sealed class ProductsController(IInventoryDbContext db, IFileStorage file
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ProductResponse>> Get(Guid id, CancellationToken ct)
     {
-        var product = await db.Products.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, ct);
+        var product = await db.Products.AsNoTracking().Include(x => x.Category).Include(x => x.Supplier)
+            .SingleOrDefaultAsync(x => x.Id == id, ct);
         return product is null ? NotFound() : Ok(Map(product));
     }
 
@@ -36,8 +37,17 @@ public sealed class ProductsController(IInventoryDbContext db, IFileStorage file
     {
         if (await db.Products.AnyAsync(x => x.Sku == request.Sku.ToUpper(), ct))
             return Conflict(new ProblemDetails { Title = "El SKU ya existe." });
+        var category = await db.Categories.SingleOrDefaultAsync(x => x.Id == request.CategoryId, ct);
+        if (category is null) return BadRequest(new ProblemDetails { Title = "La categoría no existe." });
+        Supplier? supplier = null;
+        if (request.SupplierId is not null)
+        {
+            supplier = await db.Suppliers.SingleOrDefaultAsync(x => x.Id == request.SupplierId, ct);
+            if (supplier is null) return BadRequest(new ProblemDetails { Title = "El proveedor no existe." });
+        }
         var product = new Product(request.Sku, request.Name, request.Price, request.MinimumStock);
         product.Update(request.Sku, request.Name, request.Price, request.MinimumStock, request.Description);
+        product.AssignClassification(category, supplier);
         db.AddProduct(product);
         await db.SaveChangesAsync(ct);
         return CreatedAtAction(nameof(Get), new { id = product.Id }, Map(product));
@@ -50,7 +60,16 @@ public sealed class ProductsController(IInventoryDbContext db, IFileStorage file
         var product = await db.Products.SingleOrDefaultAsync(x => x.Id == id, ct);
         if (product is null) return NotFound();
         if (await db.Products.AnyAsync(x => x.Sku == request.Sku.ToUpper() && x.Id != id, ct)) return Conflict();
+        var category = await db.Categories.SingleOrDefaultAsync(x => x.Id == request.CategoryId, ct);
+        if (category is null) return BadRequest(new ProblemDetails { Title = "La categoría no existe." });
+        Supplier? supplier = null;
+        if (request.SupplierId is not null)
+        {
+            supplier = await db.Suppliers.SingleOrDefaultAsync(x => x.Id == request.SupplierId, ct);
+            if (supplier is null) return BadRequest(new ProblemDetails { Title = "El proveedor no existe." });
+        }
         product.Update(request.Sku, request.Name, request.Price, request.MinimumStock, request.Description);
+        product.AssignClassification(category, supplier);
         await db.SaveChangesAsync(ct);
         return Ok(Map(product));
     }
@@ -102,5 +121,6 @@ public sealed class ProductsController(IInventoryDbContext db, IFileStorage file
     }
 
     private static ProductResponse Map(Product x) => new(x.Id, x.Sku, x.Name, x.Description, x.Price,
-        x.CurrentStock, x.MinimumStock, x.IsLowStock, x.ImageUrl, x.CreatedAtUtc);
+        x.CurrentStock, x.MinimumStock, x.IsLowStock, x.ImageUrl, x.CreatedAtUtc,
+        x.CategoryId, x.Category?.Name, x.SupplierId, x.Supplier?.Name);
 }

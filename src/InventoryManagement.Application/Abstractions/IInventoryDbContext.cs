@@ -7,9 +7,15 @@ public interface IInventoryDbContext
     IQueryable<Product> Products { get; }
     IQueryable<StockMovement> StockMovements { get; }
     IQueryable<AppUser> Users { get; }
+    IQueryable<Category> Categories { get; }
+    IQueryable<Supplier> Suppliers { get; }
     void AddProduct(Product product);
     void AddStockMovement(StockMovement movement);
     void AddUser(AppUser user);
+    void AddCategory(Category category);
+    void AddSupplier(Supplier supplier);
+    void RemoveCategory(Category category);
+    void RemoveSupplier(Supplier supplier);
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
 
