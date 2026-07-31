@@ -1,5 +1,6 @@
 using InventoryManagement.Domain.Entities;
 using InventoryManagement.Domain.Authorization;
+using InventoryManagement.Application.Models;
 
 namespace InventoryManagement.UnitTests;
 
@@ -21,6 +22,21 @@ public sealed class ProductTests
         Assert.Equal(5, product.CurrentStock);
         Assert.Single(product.Movements);
         Assert.False(product.IsLowStock);
+    }
+}
+
+public sealed class PaginationTests
+{
+    [Theory]
+    [InlineData(0, 0, 1, 1)]
+    [InlineData(-5, 250, 1, 100)]
+    [InlineData(3, 40, 3, 40)]
+    public void Normalize_EnforcesSafeLimits(int page, int pageSize, int expectedPage, int expectedPageSize)
+    {
+        var result = Pagination.Normalize(page, pageSize);
+
+        Assert.Equal(expectedPage, result.Page);
+        Assert.Equal(expectedPageSize, result.PageSize);
     }
 }
 

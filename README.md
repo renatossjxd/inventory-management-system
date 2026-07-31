@@ -74,7 +74,7 @@ dotnet user-secrets set "Jwt:Key" "<32-or-more-random-characters>" --project src
 | POST | `/api/auth/register` | Crea el Admin inicial; después requiere Admin y permite asignar un rol |
 | POST | `/api/auth/login` | Obtiene un token JWT |
 | GET | `/api/auth/users` | Lista usuarios; requiere rol Admin |
-| GET | `/api/products?lowStock=true` | Lista y filtra productos |
+| GET | `/api/products?page=1&pageSize=20&search=mouse` | Lista productos paginados; permite buscar y filtrar por categoría, proveedor y stock bajo |
 | POST | `/api/products` | Crea un producto; requiere rol Admin |
 | PUT | `/api/products/{id}` | Actualiza un producto; requiere rol Admin |
 | POST | `/api/products/{id}/stock-movements` | Registra entrada o salida |
@@ -87,6 +87,9 @@ dotnet user-secrets set "Jwt:Key" "<32-or-more-random-characters>" --project src
 | GET/POST | `/api/purchase-orders` | Consulta o crea órdenes de compra |
 | POST | `/api/purchase-orders/{id}/receive` | Recibe mercadería y aumenta el stock |
 | POST | `/api/purchase-orders/{id}/cancel` | Cancela una orden pendiente; requiere Admin |
+| GET | `/api/dashboard` | Resume valor y unidades de inventario, stock bajo, órdenes y actividad reciente |
+
+La respuesta de `GET /api/products` incluye `items`, `page`, `pageSize`, `totalCount` y `totalPages`. El tamaño máximo permitido es de 100 elementos por página.
 
 ## Preparación para Azure
 
@@ -108,6 +111,6 @@ GitHub Actions ejecuta estas validaciones automáticamente en cada cambio enviad
 
 ## Próximos incrementos
 
-1. Paginación, búsqueda y dashboard de indicadores.
-2. Pruebas de integración con SQL Server y Azurite en contenedores.
+1. Pruebas de integración automatizadas con SQL Server y Azurite en contenedores.
+2. Exportación de reportes de inventario.
 3. Despliegue continuo a Azure App Service.

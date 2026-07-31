@@ -16,11 +16,31 @@ namespace InventoryManagement.Api.Controllers;
 public sealed class ProductsController(IInventoryDbContext db, IFileStorage fileStorage) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<ProductResponse>>> GetAll([FromQuery] bool? lowStock, CancellationToken ct)
+    public async Task<ActionResult<PagedResponse<ProductResponse>>> GetAll(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = Pagination.DefaultPageSize,
+        [FromQuery] string? search = null,
+        [FromQuery] Guid? categoryId = null,
+        [FromQuery] Guid? supplierId = null,
+        [FromQuery] bool? lowStock = null,
+        CancellationToken ct = default)
     {
+        (page, pageSize) = Pagination.Normalize(page, pageSize);
         IQueryable<Product> query = db.Products.AsNoTracking().Include(x => x.Category).Include(x => x.Supplier);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            query = query.Where(x => x.Sku.Contains(term) || x.Name.Contains(term) ||
+                (x.Description != null && x.Description.Contains(term)));
+        }
+        if (categoryId is not null) query = query.Where(x => x.CategoryId == categoryId);
+        if (supplierId is not null) query = query.Where(x => x.SupplierId == supplierId);
         if (lowStock is true) query = query.Where(x => x.CurrentStock <= x.MinimumStock);
-        return Ok(await query.OrderBy(x => x.Name).Select(x => Map(x)).ToListAsync(ct));
+        var totalCount = await query.CountAsync(ct);
+        var items = await query.OrderBy(x => x.Name).ThenBy(x => x.Id)
+            .Skip((page - 1) * pageSize).Take(pageSize).Select(x => Map(x)).ToListAsync(ct);
+        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+        return Ok(new PagedResponse<ProductResponse>(items, page, pageSize, totalCount, totalPages));
     }
 
     [HttpGet("{id:guid}")]
