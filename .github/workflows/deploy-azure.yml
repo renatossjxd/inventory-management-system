@@ -1,0 +1,92 @@
+name: Deploy to Azure
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'Dockerfile'
+      - '.github/workflows/deploy-azure.yml'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy production
+    if: vars.AZURE_WEBAPP_NAME != ''
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.webapp-url }}
+    env:
+      AZURE_WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
+      AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      AZURE_SQL_SERVER_NAME: ${{ vars.AZURE_SQL_SERVER_NAME }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Login to Azure with OpenID Connect
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build migration bundle
+        run: |
+          dotnet tool install --global dotnet-ef --version 10.*
+          dotnet ef migrations bundle \
+            --project src/InventoryManagement.Infrastructure \
+            --startup-project src/InventoryManagement.Api \
+            --configuration Release \
+            --output artifacts/efbundle
+
+      - name: Allow runner in Azure SQL
+        id: sql-firewall
+        run: |
+          RUNNER_IP=$(curl -fsS https://api.ipify.org)
+          echo "runner-ip=$RUNNER_IP" >> "$GITHUB_OUTPUT"
+          az sql server firewall-rule create \
+            --resource-group "$AZURE_RESOURCE_GROUP" \
+            --server "$AZURE_SQL_SERVER_NAME" \
+            --name GitHubActionsTemporary \
+            --start-ip-address "$RUNNER_IP" \
+            --end-ip-address "$RUNNER_IP"
+
+      - name: Apply database migrations
+        run: ./artifacts/efbundle --connection '${{ secrets.AZURE_SQL_CONNECTION_STRING }}'
+
+      - name: Publish API
+        run: dotnet publish src/InventoryManagement.Api/InventoryManagement.Api.csproj --configuration Release --output artifacts/app
+
+      - name: Deploy App Service
+        id: deploy
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          package: artifacts/app
+
+      - name: Verify production health
+        run: curl --fail --retry 12 --retry-delay 10 '${{ steps.deploy.outputs.webapp-url }}/health'
+
+      - name: Remove temporary SQL firewall rule
+        if: always() && steps.sql-firewall.outputs.runner-ip != ''
+        run: az sql server firewall-rule delete --resource-group "$AZURE_RESOURCE_GROUP" --server "$AZURE_SQL_SERVER_NAME" --name GitHubActionsTemporary
+
+      - name: Logout from Azure
+        if: always()
+        run: az logout

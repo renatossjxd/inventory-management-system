@@ -99,6 +99,8 @@ La respuesta de `GET /api/products` incluye `items`, `page`, `pageSize`, `totalC
 - **Azure Blob Storage:** las imágenes se gestionan mediante `IFileStorage` y el SDK oficial. En Azure se configura `BlobStorage__ConnectionString`, `BlobStorage__ContainerName` y, opcionalmente, `BlobStorage__PublicBaseUrl`.
 - **Secretos:** configurar `Jwt__Key` y la cadena de conexión en App Service/Key Vault; nunca guardarlos en `appsettings.json` de producción.
 - **Migraciones:** para producción se recomienda ejecutarlas desde CI/CD antes del despliegue y mantener `Database__MigrateOnStartup=false`.
+- **Infraestructura:** `infra/main.bicep` crea App Service, Azure SQL y Blob Storage de forma reproducible.
+- **Despliegue continuo:** `.github/workflows/deploy-azure.yml` usa OIDC, aplica migraciones, publica la API y comprueba `/health`. Consulta [la guía de despliegue](docs/azure-deployment.md).
 
 ## Calidad y comandos útiles
 
@@ -118,6 +120,6 @@ bash tests/integration/api-smoke-test.sh
 
 ## Próximos incrementos
 
-1. Despliegue continuo a Azure App Service.
-2. Interfaz web administrativa.
-3. Notificaciones de stock bajo.
+1. Interfaz web administrativa.
+2. Notificaciones de stock bajo.
+3. Auditoría avanzada de operaciones.
