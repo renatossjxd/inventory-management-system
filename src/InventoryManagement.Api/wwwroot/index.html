@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Panel administrativo del Sistema de Gestión de Inventario">
+  <title>Inventario | Panel administrativo</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <div id="login-view" class="login-shell">
+    <section class="login-story" aria-label="Presentación">
+      <div class="brand"><span class="brand-mark">R</span><span>Renato Inventory</span></div>
+      <div class="story-copy">
+        <p class="eyebrow">CONTROL OPERATIVO</p>
+        <h1>Tu inventario,<br>sin puntos ciegos.</h1>
+        <p>Existencias, compras y alertas reunidas en un panel claro para tomar mejores decisiones.</p>
+      </div>
+      <p class="story-foot">ASP.NET Core · Azure · SQL Server</p>
+    </section>
+    <main class="login-panel">
+      <form id="login-form" class="login-card">
+        <p class="eyebrow">ACCESO SEGURO</p>
+        <h2>Bienvenido de vuelta</h2>
+        <p class="muted">Ingresa con tu cuenta del sistema de inventario.</p>
+        <label for="email">Correo electrónico</label>
+        <input id="email" name="email" type="email" autocomplete="username" placeholder="nombre@empresa.cl" required>
+        <label for="password">Contraseña</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Tu contraseña" required>
+        <p id="login-error" class="form-error" role="alert" hidden></p>
+        <button class="button primary full" type="submit"><span>Ingresar al panel</span><span aria-hidden="true">→</span></button>
+        <p class="security-note">Sesión protegida con JWT. El acceso se elimina al cerrar esta pestaña.</p>
+      </form>
+    </main>
+  </div>
+
+  <div id="app-view" class="app-shell" hidden>
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">R</span><span>Renato Inventory</span></div>
+      <nav aria-label="Navegación principal">
+        <button class="nav-item active" data-view="dashboard"><span aria-hidden="true">◫</span> Resumen</button>
+        <button class="nav-item" data-view="products"><span aria-hidden="true">□</span> Productos</button>
+        <a class="nav-item" href="/swagger" target="_blank"><span aria-hidden="true">⌘</span> API Swagger</a>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="avatar" id="user-initial">R</div>
+        <div><strong id="user-name">Usuario</strong><small id="user-role">Operador</small></div>
+        <button id="logout-button" class="icon-button" title="Cerrar sesión" aria-label="Cerrar sesión">↗</button>
+      </div>
+    </aside>
+
+    <main class="content">
+      <header class="topbar">
+        <div><p class="eyebrow" id="page-eyebrow">PANEL GENERAL</p><h1 id="page-title">Resumen de inventario</h1></div>
+        <div class="topbar-actions"><span class="live"><i></i> Sistema operativo</span><button id="refresh-button" class="button secondary">Actualizar</button></div>
+      </header>
+
+      <section id="dashboard-view">
+        <div id="metrics" class="metrics" aria-live="polite"></div>
+        <div class="dashboard-grid">
+          <article class="panel low-stock-panel">
+            <div class="panel-heading"><div><p class="eyebrow">ATENCIÓN REQUERIDA</p><h2>Stock crítico</h2></div><button class="text-button" data-go-products="true">Ver productos →</button></div>
+            <div id="low-stock-list" class="stock-list"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-heading"><div><p class="eyebrow">TRAZABILIDAD</p><h2>Actividad reciente</h2></div></div>
+            <div id="movement-list" class="timeline"></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="products-view" hidden>
+        <article class="panel product-panel">
+          <div class="toolbar">
+            <div class="search-box"><span aria-hidden="true">⌕</span><input id="product-search" type="search" placeholder="Buscar por nombre, SKU o descripción"></div>
+            <label class="check-filter"><input id="low-stock-filter" type="checkbox"> Solo stock bajo</label>
+            <button id="export-button" class="button secondary">Descargar CSV</button>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Producto</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Estado</th></tr></thead>
+              <tbody id="products-body"></tbody>
+            </table>
+          </div>
+          <div class="pagination"><p id="product-count" class="muted"></p><div><button id="previous-page" class="icon-button" aria-label="Página anterior">←</button><span id="page-number">1</span><button id="next-page" class="icon-button" aria-label="Página siguiente">→</button></div></div>
+        </article>
+      </section>
+
+      <div id="loading" class="loading" hidden><span></span><p>Cargando información…</p></div>
+      <div id="toast" class="toast" role="status" hidden></div>
+    </main>
+  </div>
+  <script src="/js/app.js" defer></script>
+</body>
+</html>

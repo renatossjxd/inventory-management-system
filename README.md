@@ -4,6 +4,8 @@
 
 API REST profesional para administrar productos y movimientos de inventario. El proyecto demuestra un flujo completo con ASP.NET Core, arquitectura limpia, SQL Server, Entity Framework Core, JWT, Swagger, pruebas y contenedores.
 
+Incluye un panel administrativo adaptable en `/`, conectado a la API real, con inicio de sesión, indicadores, alertas, actividad reciente, búsqueda de productos y descarga de reportes.
+
 ## Funcionalidad del primer incremento
 
 - Registro e inicio de sesión con JWT.
@@ -120,6 +122,6 @@ bash tests/integration/api-smoke-test.sh
 
 ## Próximos incrementos
 
-1. Interfaz web administrativa.
+1. Formularios web para administrar productos y órdenes de compra.
 2. Notificaciones de stock bajo.
 3. Auditoría avanzada de operaciones.

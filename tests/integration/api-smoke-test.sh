@@ -31,6 +31,9 @@ for attempt in {1..60}; do
   sleep 2
 done
 
+curl -fsS "$api_url/" -o "$work_dir/index.html"
+python -c 'import sys; text=open(sys.argv[1],encoding="utf-8").read(); assert "Renato Inventory" in text and "login-form" in text' "$work_dir/index.html"
+
 register_body="$(python -c 'import json,sys; print(json.dumps({"email":sys.argv[1],"displayName":"Integration Admin","password":sys.argv[2]}))' "$admin_email" "$admin_password")"
 status="$(request POST /api/auth/register "$register_body" "$work_dir/auth.json")"
 if [[ "$status" != 201 ]]; then
