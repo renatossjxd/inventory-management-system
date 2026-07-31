@@ -42,3 +42,25 @@ public sealed class AppUserTests
             new AppUser("user@example.com", "User", "hash", "salt", "SuperAdmin"));
     }
 }
+
+public sealed class CatalogTests
+{
+    [Fact]
+    public void Product_AssignsCategoryAndOptionalSupplier()
+    {
+        var product = new Product("SKU-CATALOG", "Monitor", 100, 1);
+        var category = new Category("Monitores");
+        var supplier = new Supplier("Proveedor Uno", "ventas@proveedor.cl", "+56 9 1234 5678");
+
+        product.AssignClassification(category, supplier);
+
+        Assert.Equal(category.Id, product.CategoryId);
+        Assert.Equal(supplier.Id, product.SupplierId);
+    }
+
+    [Fact]
+    public void Supplier_RejectsInvalidEmail()
+    {
+        Assert.Throws<ArgumentException>(() => new Supplier("Proveedor", "correo-invalido"));
+    }
+}

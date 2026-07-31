@@ -19,6 +19,10 @@ public sealed class Product
     public int CurrentStock { get; private set; }
     public int MinimumStock { get; private set; }
     public string? ImageUrl { get; private set; }
+    public Guid? CategoryId { get; private set; }
+    public Category? Category { get; private set; }
+    public Guid? SupplierId { get; private set; }
+    public Supplier? Supplier { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime? UpdatedAtUtc { get; private set; }
     public ICollection<StockMovement> Movements { get; private set; } = new List<StockMovement>();
@@ -53,4 +57,13 @@ public sealed class Product
     }
 
     public void SetImageUrl(string? imageUrl) => ImageUrl = imageUrl;
+
+    public void AssignClassification(Category category, Supplier? supplier)
+    {
+        Category = category ?? throw new ArgumentNullException(nameof(category));
+        CategoryId = category.Id;
+        Supplier = supplier;
+        SupplierId = supplier?.Id;
+        UpdatedAtUtc = DateTime.UtcNow;
+    }
 }
