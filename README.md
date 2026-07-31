@@ -1,0 +1,97 @@
+# Inventory Management System
+
+API REST profesional para administrar productos y movimientos de inventario. El proyecto demuestra un flujo completo con ASP.NET Core, arquitectura limpia, SQL Server, Entity Framework Core, JWT, Swagger, pruebas y contenedores.
+
+## Funcionalidad del primer incremento
+
+- Registro e inicio de sesión con JWT.
+- Contraseñas protegidas con PBKDF2, salt aleatorio y comparación en tiempo constante.
+- Crear, consultar y actualizar productos.
+- Registrar entradas y salidas de inventario con trazabilidad del usuario.
+- Regla de negocio que impide stock negativo.
+- Consulta de productos con stock bajo.
+- Migración inicial de Entity Framework Core.
+- Swagger UI en `/swagger` y health check en `/health`.
+
+## Arquitectura
+
+```text
+src/
+├── InventoryManagement.Domain          Entidades y reglas de negocio
+├── InventoryManagement.Application     Contratos y modelos de aplicación
+├── InventoryManagement.Infrastructure  EF Core, SQL Server y seguridad
+└── InventoryManagement.Api             HTTP, JWT y Swagger
+tests/
+└── InventoryManagement.UnitTests       Pruebas de reglas del dominio
+```
+
+Las dependencias apuntan hacia el dominio. La API compone las capas mediante inyección de dependencias.
+
+## Ejecutar con Docker
+
+Requisitos: Docker Desktop.
+
+1. Copia `.env.example` como `.env`.
+2. Reemplaza ambos valores por secretos fuertes. No subas `.env` a Git.
+3. Ejecuta:
+
+```bash
+docker compose up --build
+```
+
+Abre `http://localhost:8080/swagger`. Registra un usuario, copia el token y autorízate con el botón **Authorize**.
+
+## Ejecutar con .NET
+
+Requisitos: .NET 10 SDK y SQL Server accesible.
+
+```bash
+dotnet tool restore
+dotnet restore
+dotnet ef database update --project src/InventoryManagement.Infrastructure --startup-project src/InventoryManagement.Api
+dotnet run --project src/InventoryManagement.Api
+```
+
+Para desarrollo se pueden sustituir secretos sin escribirlos en Git:
+
+```bash
+dotnet user-secrets set "ConnectionStrings:InventoryDb" "<connection-string>" --project src/InventoryManagement.Api
+dotnet user-secrets set "Jwt:Key" "<32-or-more-random-characters>" --project src/InventoryManagement.Api
+```
+
+## Endpoints principales
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| POST | `/api/auth/register` | Crea el primer usuario administrador |
+| POST | `/api/auth/login` | Obtiene un token JWT |
+| GET | `/api/products?lowStock=true` | Lista y filtra productos |
+| POST | `/api/products` | Crea un producto |
+| PUT | `/api/products/{id}` | Actualiza un producto |
+| POST | `/api/products/{id}/stock-movements` | Registra entrada o salida |
+| GET | `/api/products/{id}/stock-movements` | Consulta el historial |
+
+## Preparación para Azure
+
+- **Azure App Service:** la API escucha el puerto indicado por ASP.NET y cuenta con `/health`.
+- **Azure SQL:** solo hay que definir `ConnectionStrings__InventoryDb` en App Service; el proveedor ya es SQL Server.
+- **Azure Blob Storage:** `ImageUrl` está contemplado en el producto. La carga real de imágenes se implementará en el siguiente incremento mediante una abstracción de almacenamiento, identidad administrada y el SDK de Blob Storage.
+- **Secretos:** configurar `Jwt__Key` y la cadena de conexión en App Service/Key Vault; nunca guardarlos en `appsettings.json` de producción.
+- **Migraciones:** para producción se recomienda ejecutarlas desde CI/CD antes del despliegue y mantener `Database__MigrateOnStartup=false`.
+
+## Calidad y comandos útiles
+
+```bash
+dotnet build InventoryManagement.slnx
+dotnet test InventoryManagement.slnx
+dotnet list InventoryManagement.slnx package --vulnerable --include-transitive
+```
+
+## Próximos incrementos
+
+1. Azure Blob Storage para imágenes de productos.
+2. Roles `Admin` y `Operator` con políticas de autorización.
+3. Categorías, proveedores y órdenes de compra.
+4. Paginación, búsqueda y dashboard de indicadores.
+5. Pruebas de integración con SQL Server en contenedor.
+6. CI/CD con GitHub Actions y despliegue a Azure.
