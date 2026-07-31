@@ -1,4 +1,4 @@
-const state = { token: sessionStorage.getItem('inventoryToken'), user: null, page: 1, totalPages: 1, search: '', lowStock: false, products: [] };
+const state = { token: sessionStorage.getItem('inventoryToken'), user: null, page: 1, totalPages: 1, search: '', lowStock: false, products: [], orderProducts: [], orderSuppliers: [] };
 const $ = (selector) => document.querySelector(selector);
 const money = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
 const number = new Intl.NumberFormat('es-CL');
@@ -36,6 +36,7 @@ function showApp() {
   $('#user-initial').textContent = name[0].toUpperCase();
   $('#export-button').hidden = state.user.role !== 'Admin';
   $('#new-product-button').hidden = state.user.role !== 'Admin';
+  $('#new-order-button').hidden = state.user.role !== 'Admin';
   loadDashboard();
 }
 
@@ -93,12 +94,32 @@ async function loadProducts() {
   finally { setLoading(false); }
 }
 
+const orderStatus = { Pending: 'Pendiente', Received: 'Recibida', Cancelled: 'Cancelada' };
+
+async function loadOrders() {
+  setLoading(true);
+  try {
+    const status = $('#order-status-filter').value;
+    const query = status ? `?status=${encodeURIComponent(status)}` : '';
+    const orders = await (await api(`/api/purchase-orders${query}`)).json();
+    $('#orders-list').innerHTML = orders.length ? orders.map(order => {
+      const canReceive = order.status === 'Pending';
+      const canCancel = canReceive && state.user.role === 'Admin';
+      return `<article class="order-card"><div><div class="order-heading"><strong>${escapeHtml(order.number)}</strong><span class="status-badge ${order.status.toLowerCase()}">${orderStatus[order.status] || escapeHtml(order.status)}</span></div><p>${escapeHtml(order.supplierName)} · ${order.items.length} producto${order.items.length === 1 ? '' : 's'}</p><small>Creada ${new Date(order.createdAtUtc).toLocaleString('es-CL')}</small></div><div class="order-summary"><strong>${money.format(order.total)}</strong><div class="order-actions">${canReceive ? `<button class="order-action primary" data-receive-order="${order.id}">Recibir</button>` : ''}${canCancel ? `<button class="order-action danger" data-cancel-order="${order.id}">Cancelar</button>` : ''}</div></div></article>`;
+    }).join('') : '<p class="empty">No hay órdenes para este filtro.</p>';
+    document.querySelectorAll('[data-receive-order]').forEach(button => button.addEventListener('click', () => updateOrder(button.dataset.receiveOrder, 'receive', 'Orden recibida e inventario actualizado.')));
+    document.querySelectorAll('[data-cancel-order]').forEach(button => button.addEventListener('click', () => updateOrder(button.dataset.cancelOrder, 'cancel', 'Orden cancelada correctamente.')));
+  } catch (err) { toast(err.message); }
+  finally { setLoading(false); }
+}
+
 function changeView(view) {
   document.querySelectorAll('.nav-item[data-view]').forEach(item => item.classList.toggle('active', item.dataset.view === view));
-  $('#dashboard-view').hidden = view !== 'dashboard'; $('#products-view').hidden = view !== 'products';
-  $('#page-eyebrow').textContent = view === 'dashboard' ? 'PANEL GENERAL' : 'CATÁLOGO';
-  $('#page-title').textContent = view === 'dashboard' ? 'Resumen de inventario' : 'Productos';
-  if (view === 'products') loadProducts(); else loadDashboard();
+  $('#dashboard-view').hidden = view !== 'dashboard'; $('#products-view').hidden = view !== 'products'; $('#orders-view').hidden = view !== 'orders';
+  const headings = { dashboard: ['PANEL GENERAL', 'Resumen de inventario'], products: ['CATÁLOGO', 'Productos'], orders: ['ABASTECIMIENTO', 'Órdenes de compra'] };
+  $('#page-eyebrow').textContent = headings[view][0];
+  $('#page-title').textContent = headings[view][1];
+  if (view === 'products') loadProducts(); else if (view === 'orders') loadOrders(); else loadDashboard();
 }
 
 function escapeHtml(value) { const el = document.createElement('span'); el.textContent = value ?? ''; return el.innerHTML; }
@@ -109,6 +130,33 @@ async function loadCatalogOptions() {
 }
 async function openProductDialog() { try { await loadCatalogOptions(); $('#product-form').reset(); $('#product-dialog').showModal(); } catch (err) { toast(err.message); } }
 function openStockDialog(id, name) { const form = $('#stock-form'); form.reset(); form.elements.productId.value = id; $('#stock-product-name').textContent = name; $('#stock-dialog').showModal(); }
+async function openOrderDialog() {
+  try {
+    const [suppliers, products] = await Promise.all([api('/api/suppliers').then(r => r.json()), api('/api/products?pageSize=100').then(r => r.json())]);
+    state.orderSuppliers = suppliers; state.orderProducts = products.items;
+    const form = $('#order-form'); form.reset(); formError(form);
+    $('#order-supplier').innerHTML = '<option value="">Selecciona un proveedor</option>' + suppliers.map(x => `<option value="${x.id}">${escapeHtml(x.name)}</option>`).join('');
+    $('#order-lines').innerHTML = ''; addOrderLine(); updateOrderTotal(); $('#order-dialog').showModal();
+  } catch (err) { toast(err.message); }
+}
+function availableOrderProducts() { const supplierId = $('#order-supplier').value; return state.orderProducts.filter(x => !supplierId || !x.supplierId || x.supplierId === supplierId); }
+function addOrderLine() {
+  const line = document.createElement('div'); line.className = 'order-line';
+  line.innerHTML = `<label>Producto<select name="productId" required></select></label><label>Cantidad<input name="quantity" type="number" min="1" step="1" value="1" required></label><label>Costo unitario<input name="unitCost" type="number" min="0.01" step="0.01" required></label><button type="button" class="remove-line" aria-label="Quitar producto">×</button>`;
+  $('#order-lines').append(line); refreshOrderProductOptions();
+  line.querySelector('[name="productId"]').addEventListener('change', event => { const product = state.orderProducts.find(x => x.id === event.target.value); if (product) line.querySelector('[name="unitCost"]').value = product.price; updateOrderTotal(); });
+  line.querySelectorAll('input').forEach(input => input.addEventListener('input', updateOrderTotal));
+  line.querySelector('.remove-line').addEventListener('click', () => { if ($('#order-lines').children.length > 1) line.remove(); updateOrderTotal(); });
+}
+function refreshOrderProductOptions() {
+  const options = availableOrderProducts();
+  document.querySelectorAll('#order-lines [name="productId"]').forEach(select => { const selected = select.value; select.innerHTML = '<option value="">Selecciona un producto</option>' + options.map(x => `<option value="${x.id}">${escapeHtml(x.name)} (${escapeHtml(x.sku)})</option>`).join(''); if (options.some(x => x.id === selected)) select.value = selected; });
+}
+function updateOrderTotal() { const total = [...document.querySelectorAll('.order-line')].reduce((sum, line) => sum + Number(line.querySelector('[name="quantity"]').value || 0) * Number(line.querySelector('[name="unitCost"]').value || 0), 0); $('#order-total').textContent = money.format(total); }
+async function updateOrder(id, action, message) {
+  if (!confirm(`¿Confirmas que deseas ${action === 'receive' ? 'recibir' : 'cancelar'} esta orden?`)) return;
+  try { await api(`/api/purchase-orders/${id}/${action}`, { method: 'POST' }); await loadOrders(); toast(message); } catch (err) { toast(err.message); }
+}
 function closeDialog(id) { document.getElementById(id).close(); }
 function formError(form, message = '') { const error = form.querySelector('[data-form-error]'); error.textContent = message; error.hidden = !message; }
 
@@ -128,16 +176,29 @@ $('#stock-form').addEventListener('submit', async event => {
     closeDialog('stock-dialog'); await loadProducts(); toast('Movimiento registrado correctamente.');
   } catch (err) { formError(form, err.message); } finally { submit.disabled = false; }
 });
+$('#order-form').addEventListener('submit', async event => {
+  event.preventDefault(); const form = event.currentTarget; formError(form); const submit = event.submitter; submit.disabled = true;
+  try {
+    const items = [...form.querySelectorAll('.order-line')].map(line => ({ productId: line.querySelector('[name="productId"]').value, quantity: Number(line.querySelector('[name="quantity"]').value), unitCost: Number(line.querySelector('[name="unitCost"]').value) }));
+    if (new Set(items.map(x => x.productId)).size !== items.length) throw new Error('No puedes repetir un producto en la misma orden.');
+    await api('/api/purchase-orders', { method: 'POST', body: JSON.stringify({ supplierId: form.elements.supplierId.value, items }) });
+    closeDialog('order-dialog'); await loadOrders(); toast('Orden de compra creada correctamente.');
+  } catch (err) { formError(form, err.message); } finally { submit.disabled = false; }
+});
 document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => changeView(button.dataset.view)));
 document.querySelectorAll('[data-go-products]').forEach(button => button.addEventListener('click', () => changeView('products')));
 $('#logout-button').addEventListener('click', logout);
-$('#refresh-button').addEventListener('click', () => $('#products-view').hidden ? loadDashboard() : loadProducts());
+$('#refresh-button').addEventListener('click', () => { if (!$('#orders-view').hidden) loadOrders(); else if (!$('#products-view').hidden) loadProducts(); else loadDashboard(); });
 let searchTimer; $('#product-search').addEventListener('input', event => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { state.search = event.target.value.trim(); state.page = 1; loadProducts(); }, 350); });
 $('#low-stock-filter').addEventListener('change', event => { state.lowStock = event.target.checked; state.page = 1; loadProducts(); });
 $('#previous-page').addEventListener('click', () => { if (state.page > 1) { state.page--; loadProducts(); } });
 $('#next-page').addEventListener('click', () => { if (state.page < state.totalPages) { state.page++; loadProducts(); } });
 $('#export-button').addEventListener('click', async () => { try { const params = new URLSearchParams(); if (state.search) params.set('search', state.search); if (state.lowStock) params.set('lowStock', 'true'); const response = await api(`/api/reports/inventory.csv?${params}`); const blob = await response.blob(); const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'inventario.csv'; anchor.click(); URL.revokeObjectURL(url); } catch (err) { toast(err.message); } });
 $('#new-product-button').addEventListener('click', openProductDialog);
+$('#new-order-button').addEventListener('click', openOrderDialog);
+$('#add-order-line').addEventListener('click', addOrderLine);
+$('#order-supplier').addEventListener('change', refreshOrderProductOptions);
+$('#order-status-filter').addEventListener('change', loadOrders);
 document.querySelectorAll('[data-close-dialog]').forEach(button => button.addEventListener('click', () => closeDialog(button.dataset.closeDialog)));
 
 if (state.token) showApp();
