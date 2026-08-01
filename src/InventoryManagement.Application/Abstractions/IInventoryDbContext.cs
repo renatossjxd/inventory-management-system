@@ -11,6 +11,7 @@ public interface IInventoryDbContext
     IQueryable<Supplier> Suppliers { get; }
     IQueryable<PurchaseOrder> PurchaseOrders { get; }
     IQueryable<LowStockNotification> LowStockNotifications { get; }
+    IQueryable<AuditLog> AuditLogs { get; }
     void AddProduct(Product product);
     void AddStockMovement(StockMovement movement);
     void AddUser(AppUser user);
@@ -20,6 +21,7 @@ public interface IInventoryDbContext
     void RemoveSupplier(Supplier supplier);
     void AddPurchaseOrder(PurchaseOrder purchaseOrder);
     void AddLowStockNotification(LowStockNotification notification);
+    void AddAuditLog(AuditLog auditLog);
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
 

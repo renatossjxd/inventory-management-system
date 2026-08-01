@@ -151,3 +151,19 @@ public sealed class LowStockNotificationTests
         Assert.NotNull(notification.ReadAtUtc);
     }
 }
+
+public sealed class AuditLogTests
+{
+    [Fact]
+    public void Constructor_NormalizesMethodAndKeepsOperationalMetadata()
+    {
+        var userId = Guid.NewGuid();
+        var audit = new AuditLog(userId, "Renato", "post", "/api/products", 201,
+            "127.0.0.1", "Integration test", 42);
+
+        Assert.Equal("POST", audit.HttpMethod);
+        Assert.Equal(userId, audit.UserId);
+        Assert.Equal(201, audit.StatusCode);
+        Assert.Equal(42, audit.DurationMilliseconds);
+    }
+}

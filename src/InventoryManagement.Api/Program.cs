@@ -5,6 +5,7 @@ using InventoryManagement.Infrastructure;
 using InventoryManagement.Infrastructure.Persistence;
 using InventoryManagement.Api.Security;
 using InventoryManagement.Api.Errors;
+using InventoryManagement.Api.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -67,6 +68,7 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<AuditMiddleware>();
 app.MapControllers();
 app.MapHealthChecks("/health");
 

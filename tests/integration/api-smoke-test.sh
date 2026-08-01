@@ -94,4 +94,8 @@ notification_id="$(python -c 'import json,sys; items=json.load(open(sys.argv[1])
 status="$(request POST "/api/notifications/$notification_id/read" '' "$work_dir/notification-read.json")"
 assert_status "$status" 204 "$work_dir/notification-read.json"
 
-echo "Prueba de integración completada: autenticación, SQL Server, inventario, alertas, dashboard, reportes y Blob Storage correctos."
+status="$(request GET "/api/audit-logs?pageSize=100&method=POST" '' "$work_dir/audit-logs.json")"
+assert_status "$status" 200 "$work_dir/audit-logs.json"
+python -c 'import json,sys; data=json.load(open(sys.argv[1])); assert data["totalCount"] >= 1 and any(x["path"].endswith("/stock-movements") and x["statusCode"] == 200 for x in data["items"])' "$work_dir/audit-logs.json"
+
+echo "Prueba de integración completada: autenticación, SQL Server, inventario, alertas, auditoría, dashboard, reportes y Blob Storage correctos."

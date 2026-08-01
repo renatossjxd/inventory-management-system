@@ -25,6 +25,8 @@ public sealed record PurchaseOrderResponse(Guid Id, string Number, Guid Supplier
     DateTime? ReceivedAtUtc, IReadOnlyList<PurchaseOrderItemResponse> Items);
 public sealed record LowStockNotificationResponse(Guid Id, Guid ProductId, string ProductName, string Sku,
     int CurrentStock, int MinimumStock, bool IsRead, DateTime CreatedAtUtc, DateTime? ReadAtUtc);
+public sealed record AuditLogResponse(Guid Id, Guid? UserId, string UserName, string HttpMethod, string Path,
+    int StatusCode, string? IpAddress, string? UserAgent, long DurationMilliseconds, DateTime CreatedAtUtc);
 public sealed record PagedResponse<T>(IReadOnlyList<T> Items, int Page, int PageSize, int TotalCount,
     int TotalPages);
 public sealed record DashboardRecentMovementResponse(Guid Id, Guid ProductId, string ProductName,
