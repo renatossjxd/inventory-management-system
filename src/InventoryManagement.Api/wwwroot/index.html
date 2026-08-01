@@ -53,7 +53,7 @@
     <main class="content">
       <header class="topbar">
         <div><p class="eyebrow" id="page-eyebrow">PANEL GENERAL</p><h1 id="page-title">Resumen de inventario</h1></div>
-        <div class="topbar-actions"><span class="live"><i></i> Sistema operativo</span><button id="refresh-button" class="button secondary">Actualizar</button></div>
+        <div class="topbar-actions"><span class="live"><i></i> Sistema operativo</span><button id="notifications-button" class="notification-button" aria-label="Ver notificaciones">♢<span id="notification-count" hidden>0</span></button><button id="refresh-button" class="button secondary">Actualizar</button></div>
       </header>
 
       <section id="dashboard-view">
@@ -145,6 +145,12 @@
       <p class="form-error" data-form-error hidden></p>
       <footer><button type="button" class="button secondary" data-close-dialog="order-dialog">Cancelar</button><button type="submit" class="button primary compact">Crear orden</button></footer>
     </form>
+  </dialog>
+  <dialog id="notifications-dialog" class="modal">
+    <section class="modal-card notification-modal">
+      <header><div><p class="eyebrow">CENTRO DE ALERTAS</p><h2>Notificaciones de stock</h2></div><button type="button" class="modal-close" data-close-dialog="notifications-dialog" aria-label="Cerrar">×</button></header>
+      <div id="notifications-list" class="notifications-list"></div>
+    </section>
   </dialog>
   <script src="/js/app.js" defer></script>
 </body>

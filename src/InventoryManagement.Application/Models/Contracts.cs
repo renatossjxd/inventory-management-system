@@ -23,6 +23,8 @@ public sealed record PurchaseOrderItemResponse(Guid ProductId, string Sku, strin
 public sealed record PurchaseOrderResponse(Guid Id, string Number, Guid SupplierId, string SupplierName,
     string Status, decimal Total, Guid CreatedByUserId, Guid? ReceivedByUserId, DateTime CreatedAtUtc,
     DateTime? ReceivedAtUtc, IReadOnlyList<PurchaseOrderItemResponse> Items);
+public sealed record LowStockNotificationResponse(Guid Id, Guid ProductId, string ProductName, string Sku,
+    int CurrentStock, int MinimumStock, bool IsRead, DateTime CreatedAtUtc, DateTime? ReadAtUtc);
 public sealed record PagedResponse<T>(IReadOnlyList<T> Items, int Page, int PageSize, int TotalCount,
     int TotalPages);
 public sealed record DashboardRecentMovementResponse(Guid Id, Guid ProductId, string ProductName,

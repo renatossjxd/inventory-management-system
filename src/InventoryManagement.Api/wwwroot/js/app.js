@@ -37,6 +37,7 @@ function showApp() {
   $('#export-button').hidden = state.user.role !== 'Admin';
   $('#new-product-button').hidden = state.user.role !== 'Admin';
   $('#new-order-button').hidden = state.user.role !== 'Admin';
+  loadNotificationCount();
   loadDashboard();
 }
 
@@ -113,6 +114,26 @@ async function loadOrders() {
   finally { setLoading(false); }
 }
 
+async function loadNotificationCount() {
+  try {
+    const notifications = await (await api('/api/notifications?unreadOnly=true')).json();
+    const badge = $('#notification-count'); badge.textContent = notifications.length; badge.hidden = notifications.length === 0;
+  } catch (err) { toast(err.message); }
+}
+
+async function openNotifications() {
+  try {
+    const notifications = await (await api('/api/notifications')).json();
+    $('#notifications-list').innerHTML = notifications.length ? notifications.map(item => `<article class="notification-item ${item.isRead ? '' : 'unread'}"><span class="notification-icon">!</span><div><strong>${escapeHtml(item.productName)}</strong><p>Quedan ${number.format(item.currentStock)} unidades; el mínimo configurado es ${number.format(item.minimumStock)}.</p><time>${new Date(item.createdAtUtc).toLocaleString('es-CL')}</time></div>${item.isRead ? '' : `<button class="mark-read" data-read-notification="${item.id}">Marcar leída</button>`}</article>`).join('') : '<p class="empty">No tienes notificaciones de stock.</p>';
+    document.querySelectorAll('[data-read-notification]').forEach(button => button.addEventListener('click', () => markNotificationRead(button.dataset.readNotification)));
+    if (!$('#notifications-dialog').open) $('#notifications-dialog').showModal();
+  } catch (err) { toast(err.message); }
+}
+
+async function markNotificationRead(id) {
+  try { await api(`/api/notifications/${id}/read`, { method: 'POST' }); await openNotifications(); await loadNotificationCount(); } catch (err) { toast(err.message); }
+}
+
 function changeView(view) {
   document.querySelectorAll('.nav-item[data-view]').forEach(item => item.classList.toggle('active', item.dataset.view === view));
   $('#dashboard-view').hidden = view !== 'dashboard'; $('#products-view').hidden = view !== 'products'; $('#orders-view').hidden = view !== 'orders';
@@ -173,7 +194,7 @@ $('#stock-form').addEventListener('submit', async event => {
   try {
     const data = new FormData(form); const quantity = Number(data.get('quantity')); if (!Number.isInteger(quantity) || quantity === 0) throw new Error('La cantidad debe ser un número entero distinto de cero.');
     await api(`/api/products/${data.get('productId')}/stock-movements`, { method:'POST', body:JSON.stringify({ quantity, reason:data.get('reason') }) });
-    closeDialog('stock-dialog'); await loadProducts(); toast('Movimiento registrado correctamente.');
+    closeDialog('stock-dialog'); await loadProducts(); await loadNotificationCount(); toast('Movimiento registrado correctamente.');
   } catch (err) { formError(form, err.message); } finally { submit.disabled = false; }
 });
 $('#order-form').addEventListener('submit', async event => {
@@ -196,6 +217,7 @@ $('#next-page').addEventListener('click', () => { if (state.page < state.totalPa
 $('#export-button').addEventListener('click', async () => { try { const params = new URLSearchParams(); if (state.search) params.set('search', state.search); if (state.lowStock) params.set('lowStock', 'true'); const response = await api(`/api/reports/inventory.csv?${params}`); const blob = await response.blob(); const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'inventario.csv'; anchor.click(); URL.revokeObjectURL(url); } catch (err) { toast(err.message); } });
 $('#new-product-button').addEventListener('click', openProductDialog);
 $('#new-order-button').addEventListener('click', openOrderDialog);
+$('#notifications-button').addEventListener('click', openNotifications);
 $('#add-order-line').addEventListener('click', addOrderLine);
 $('#order-supplier').addEventListener('change', refreshOrderProductOptions);
 $('#order-status-filter').addEventListener('change', loadOrders);

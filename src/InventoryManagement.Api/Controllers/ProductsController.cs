@@ -100,8 +100,11 @@ public sealed class ProductsController(IInventoryDbContext db, IFileStorage file
         var product = await db.Products.SingleOrDefaultAsync(x => x.Id == id, ct);
         if (product is null) return NotFound();
         var userId = Guid.Parse(User.FindFirst(JwtRegisteredClaimNames.Sub)!.Value);
+        var wasLowStock = product.IsLowStock;
         var movement = product.AdjustStock(request.Quantity, request.Reason, userId);
         db.AddStockMovement(movement);
+        if (!wasLowStock && product.IsLowStock)
+            db.AddLowStockNotification(new LowStockNotification(product));
         await db.SaveChangesAsync(ct);
         return Ok(Map(product));
     }
