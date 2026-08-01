@@ -40,6 +40,7 @@
       <nav aria-label="Navegación principal">
         <button class="nav-item active" data-view="dashboard"><span aria-hidden="true">◫</span> Resumen</button>
         <button class="nav-item" data-view="products"><span aria-hidden="true">□</span> Productos</button>
+        <button class="nav-item" data-view="orders"><span aria-hidden="true">◇</span> Órdenes de compra</button>
         <a class="nav-item" href="/swagger" target="_blank"><span aria-hidden="true">⌘</span> API Swagger</a>
       </nav>
       <div class="sidebar-foot">
@@ -87,6 +88,17 @@
         </article>
       </section>
 
+      <section id="orders-view" hidden>
+        <article class="panel product-panel">
+          <div class="toolbar orders-toolbar">
+            <div><strong>Órdenes de compra</strong><p class="muted">Recepciones de mercadería y seguimiento de proveedores.</p></div>
+            <label>Estado<select id="order-status-filter"><option value="">Todos</option><option value="Pending">Pendientes</option><option value="Received">Recibidas</option><option value="Cancelled">Canceladas</option></select></label>
+            <button id="new-order-button" class="button primary compact">Nueva orden</button>
+          </div>
+          <div id="orders-list" class="orders-list"></div>
+        </article>
+      </section>
+
       <div id="loading" class="loading" hidden><span></span><p>Cargando información…</p></div>
       <div id="toast" class="toast" role="status" hidden></div>
     </main>
@@ -120,6 +132,18 @@
       </div>
       <p class="form-error" data-form-error hidden></p>
       <footer><button type="button" class="button secondary" data-close-dialog="stock-dialog">Cancelar</button><button type="submit" class="button primary compact">Registrar movimiento</button></footer>
+    </form>
+  </dialog>
+
+  <dialog id="order-dialog" class="modal wide-modal">
+    <form id="order-form" class="modal-card">
+      <header><div><p class="eyebrow">ABASTECIMIENTO</p><h2>Nueva orden de compra</h2></div><button type="button" class="modal-close" data-close-dialog="order-dialog" aria-label="Cerrar">×</button></header>
+      <div class="form-grid one-column"><label>Proveedor<select name="supplierId" id="order-supplier" required><option value="">Selecciona un proveedor</option></select></label></div>
+      <div class="line-heading"><strong>Productos</strong><button id="add-order-line" type="button" class="text-button">+ Agregar producto</button></div>
+      <div id="order-lines" class="order-lines"></div>
+      <div class="order-total"><span>Total estimado</span><strong id="order-total">$0</strong></div>
+      <p class="form-error" data-form-error hidden></p>
+      <footer><button type="button" class="button secondary" data-close-dialog="order-dialog">Cancelar</button><button type="submit" class="button primary compact">Crear orden</button></footer>
     </form>
   </dialog>
   <script src="/js/app.js" defer></script>
