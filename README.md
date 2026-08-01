@@ -21,6 +21,7 @@ Incluye un panel administrativo adaptable en `/`, conectado a la API real, con i
 - Catálogo de categorías y proveedores relacionado con los productos.
 - Órdenes de compra con recepción transaccional y actualización automática de stock.
 - Notificaciones persistentes cuando un producto cruza su umbral de stock mínimo.
+- Auditoría automática de operaciones de escritura con usuario, resultado, IP y duración.
 - Migración inicial de Entity Framework Core.
 - Swagger UI en `/swagger` y health check en `/health`.
 
@@ -90,6 +91,7 @@ dotnet user-secrets set "Jwt:Key" "<32-or-more-random-characters>" --project src
 | GET/POST | `/api/purchase-orders` | Consulta o crea órdenes de compra |
 | GET | `/api/notifications` | Consulta alertas de stock, con filtro de no leídas |
 | POST | `/api/notifications/{id}/read` | Marca una alerta como leída |
+| GET | `/api/audit-logs` | Consulta el registro paginado de operaciones (solo administradores) |
 | POST | `/api/purchase-orders/{id}/receive` | Recibe mercadería y aumenta el stock |
 | POST | `/api/purchase-orders/{id}/cancel` | Cancela una orden pendiente; requiere Admin |
 | GET | `/api/dashboard` | Resume valor y unidades de inventario, stock bajo, órdenes y actividad reciente |
@@ -125,6 +127,6 @@ bash tests/integration/api-smoke-test.sh
 
 ## Próximos incrementos
 
-1. Auditoría avanzada de operaciones.
-2. Preparación del despliegue automatizado en Azure.
-3. Panel de administración de usuarios.
+1. Preparación del despliegue automatizado en Azure.
+2. Panel de administración de usuarios.
+3. Recuperación y cambio de contraseñas.

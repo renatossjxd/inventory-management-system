@@ -1,4 +1,4 @@
-const state = { token: sessionStorage.getItem('inventoryToken'), user: null, page: 1, totalPages: 1, search: '', lowStock: false, products: [], orderProducts: [], orderSuppliers: [] };
+const state = { token: sessionStorage.getItem('inventoryToken'), user: null, page: 1, totalPages: 1, search: '', lowStock: false, products: [], orderProducts: [], orderSuppliers: [], auditPage: 1, auditTotalPages: 1 };
 const $ = (selector) => document.querySelector(selector);
 const money = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
 const number = new Intl.NumberFormat('es-CL');
@@ -37,8 +37,9 @@ function showApp() {
   $('#export-button').hidden = state.user.role !== 'Admin';
   $('#new-product-button').hidden = state.user.role !== 'Admin';
   $('#new-order-button').hidden = state.user.role !== 'Admin';
+  $('#audit-nav').hidden = state.user.role !== 'Admin';
   loadNotificationCount();
-  loadDashboard();
+  changeView('dashboard');
 }
 
 function logout() {
@@ -134,13 +135,28 @@ async function markNotificationRead(id) {
   try { await api(`/api/notifications/${id}/read`, { method: 'POST' }); await openNotifications(); await loadNotificationCount(); } catch (err) { toast(err.message); }
 }
 
+async function loadAuditLogs() {
+  setLoading(true);
+  try {
+    const params = new URLSearchParams({ page: state.auditPage, pageSize: 20 });
+    const method = $('#audit-method-filter').value; if (method) params.set('method', method);
+    const data = await (await api(`/api/audit-logs?${params}`)).json();
+    state.auditTotalPages = Math.max(1, data.totalPages);
+    $('#audit-body').innerHTML = data.items.length ? data.items.map(item => `<tr><td>${new Date(item.createdAtUtc).toLocaleString('es-CL')}</td><td><strong>${escapeHtml(item.userName)}</strong></td><td><span class="method-badge">${escapeHtml(item.httpMethod)}</span> <small>${escapeHtml(item.path)}</small></td><td><span class="result-code ${item.statusCode >= 400 ? 'error' : ''}">${item.statusCode}</span></td><td>${number.format(item.durationMilliseconds)} ms</td><td>${escapeHtml(item.ipAddress || '—')}</td></tr>`).join('') : '<tr><td colspan="6" class="empty">Todavía no hay operaciones para este filtro.</td></tr>';
+    $('#audit-count').textContent = `${number.format(data.totalCount)} registro${data.totalCount === 1 ? '' : 's'}`;
+    $('#audit-page-number').textContent = `${data.page} de ${state.auditTotalPages}`;
+    $('#audit-previous').disabled = state.auditPage <= 1; $('#audit-next').disabled = state.auditPage >= state.auditTotalPages;
+  } catch (err) { toast(err.message); }
+  finally { setLoading(false); }
+}
+
 function changeView(view) {
   document.querySelectorAll('.nav-item[data-view]').forEach(item => item.classList.toggle('active', item.dataset.view === view));
-  $('#dashboard-view').hidden = view !== 'dashboard'; $('#products-view').hidden = view !== 'products'; $('#orders-view').hidden = view !== 'orders';
-  const headings = { dashboard: ['PANEL GENERAL', 'Resumen de inventario'], products: ['CATÁLOGO', 'Productos'], orders: ['ABASTECIMIENTO', 'Órdenes de compra'] };
+  $('#dashboard-view').hidden = view !== 'dashboard'; $('#products-view').hidden = view !== 'products'; $('#orders-view').hidden = view !== 'orders'; $('#audit-view').hidden = view !== 'audit';
+  const headings = { dashboard: ['PANEL GENERAL', 'Resumen de inventario'], products: ['CATÁLOGO', 'Productos'], orders: ['ABASTECIMIENTO', 'Órdenes de compra'], audit: ['SEGURIDAD Y CONTROL', 'Auditoría de operaciones'] };
   $('#page-eyebrow').textContent = headings[view][0];
   $('#page-title').textContent = headings[view][1];
-  if (view === 'products') loadProducts(); else if (view === 'orders') loadOrders(); else loadDashboard();
+  if (view === 'products') loadProducts(); else if (view === 'orders') loadOrders(); else if (view === 'audit') loadAuditLogs(); else loadDashboard();
 }
 
 function escapeHtml(value) { const el = document.createElement('span'); el.textContent = value ?? ''; return el.innerHTML; }
@@ -209,7 +225,7 @@ $('#order-form').addEventListener('submit', async event => {
 document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => changeView(button.dataset.view)));
 document.querySelectorAll('[data-go-products]').forEach(button => button.addEventListener('click', () => changeView('products')));
 $('#logout-button').addEventListener('click', logout);
-$('#refresh-button').addEventListener('click', () => { if (!$('#orders-view').hidden) loadOrders(); else if (!$('#products-view').hidden) loadProducts(); else loadDashboard(); });
+$('#refresh-button').addEventListener('click', () => { if (!$('#audit-view').hidden) loadAuditLogs(); else if (!$('#orders-view').hidden) loadOrders(); else if (!$('#products-view').hidden) loadProducts(); else loadDashboard(); });
 let searchTimer; $('#product-search').addEventListener('input', event => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { state.search = event.target.value.trim(); state.page = 1; loadProducts(); }, 350); });
 $('#low-stock-filter').addEventListener('change', event => { state.lowStock = event.target.checked; state.page = 1; loadProducts(); });
 $('#previous-page').addEventListener('click', () => { if (state.page > 1) { state.page--; loadProducts(); } });
@@ -221,6 +237,9 @@ $('#notifications-button').addEventListener('click', openNotifications);
 $('#add-order-line').addEventListener('click', addOrderLine);
 $('#order-supplier').addEventListener('change', refreshOrderProductOptions);
 $('#order-status-filter').addEventListener('change', loadOrders);
+$('#audit-method-filter').addEventListener('change', () => { state.auditPage = 1; loadAuditLogs(); });
+$('#audit-previous').addEventListener('click', () => { if (state.auditPage > 1) { state.auditPage--; loadAuditLogs(); } });
+$('#audit-next').addEventListener('click', () => { if (state.auditPage < state.auditTotalPages) { state.auditPage++; loadAuditLogs(); } });
 document.querySelectorAll('[data-close-dialog]').forEach(button => button.addEventListener('click', () => closeDialog(button.dataset.closeDialog)));
 
 if (state.token) showApp();

@@ -41,6 +41,7 @@
         <button class="nav-item active" data-view="dashboard"><span aria-hidden="true">◫</span> Resumen</button>
         <button class="nav-item" data-view="products"><span aria-hidden="true">□</span> Productos</button>
         <button class="nav-item" data-view="orders"><span aria-hidden="true">◇</span> Órdenes de compra</button>
+        <button id="audit-nav" class="nav-item" data-view="audit"><span aria-hidden="true">≣</span> Auditoría</button>
         <a class="nav-item" href="/swagger" target="_blank"><span aria-hidden="true">⌘</span> API Swagger</a>
       </nav>
       <div class="sidebar-foot">
@@ -96,6 +97,17 @@
             <button id="new-order-button" class="button primary compact">Nueva orden</button>
           </div>
           <div id="orders-list" class="orders-list"></div>
+        </article>
+      </section>
+
+      <section id="audit-view" hidden>
+        <article class="panel product-panel">
+          <div class="toolbar audit-toolbar">
+            <div><strong>Registro de operaciones</strong><p class="muted">Acciones que modificaron información del sistema.</p></div>
+            <label>Método<select id="audit-method-filter"><option value="">Todos</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option></select></label>
+          </div>
+          <div class="table-scroll"><table><thead><tr><th>Fecha</th><th>Usuario</th><th>Operación</th><th>Resultado</th><th>Duración</th><th>IP</th></tr></thead><tbody id="audit-body"></tbody></table></div>
+          <div class="pagination"><p id="audit-count" class="muted"></p><div><button id="audit-previous" class="icon-button" aria-label="Página anterior">←</button><span id="audit-page-number">1</span><button id="audit-next" class="icon-button" aria-label="Página siguiente">→</button></div></div>
         </article>
       </section>
 
