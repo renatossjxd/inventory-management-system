@@ -24,5 +24,12 @@ public sealed class AppUser
     public string PasswordHash { get; private set; } = string.Empty;
     public string PasswordSalt { get; private set; } = string.Empty;
     public string Role { get; private set; } = UserRoles.Operator;
+    public bool IsActive { get; private set; } = true;
     public DateTime CreatedAtUtc { get; private set; }
+
+    public void UpdateAccess(string role, bool isActive)
+    {
+        Role = UserRoles.Normalize(role);
+        IsActive = isActive;
+    }
 }

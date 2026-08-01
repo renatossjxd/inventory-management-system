@@ -83,6 +83,17 @@ public sealed class AppUserTests
         Assert.Throws<ArgumentException>(() =>
             new AppUser("user@example.com", "User", "hash", "salt", "SuperAdmin"));
     }
+
+    [Fact]
+    public void UpdateAccess_ChangesRoleAndActiveState()
+    {
+        var user = new AppUser("user@example.com", "User", "hash", "salt", UserRoles.Operator);
+
+        user.UpdateAccess(UserRoles.Admin, false);
+
+        Assert.Equal(UserRoles.Admin, user.Role);
+        Assert.False(user.IsActive);
+    }
 }
 
 public sealed class CatalogTests

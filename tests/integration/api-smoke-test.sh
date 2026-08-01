@@ -43,6 +43,20 @@ if [[ "$status" != 201 ]]; then
 fi
 token="$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["accessToken"])' "$work_dir/auth.json")"
 
+operator_email="operator-$run_id@inventory.local"
+operator_password='Operator_2026!'
+operator_body="$(python -c 'import json,sys; print(json.dumps({"email":sys.argv[1],"displayName":"Integration Operator","password":sys.argv[2],"role":"Operator"}))' "$operator_email" "$operator_password")"
+status="$(request POST /api/auth/register "$operator_body" "$work_dir/operator-register.json")"
+assert_status "$status" 201 "$work_dir/operator-register.json"
+status="$(request GET /api/auth/users '' "$work_dir/users.json")"
+assert_status "$status" 200 "$work_dir/users.json"
+operator_id="$(python -c 'import json,sys; print(next(x["id"] for x in json.load(open(sys.argv[1])) if x["email"] == sys.argv[2] and x["isActive"]))' "$work_dir/users.json" "$operator_email")"
+status="$(request PUT "/api/auth/users/$operator_id/access" '{"role":"Operator","isActive":false}' "$work_dir/operator-access.json")"
+assert_status "$status" 200 "$work_dir/operator-access.json"
+operator_login_body="$(python -c 'import json,sys; print(json.dumps({"email":sys.argv[1],"password":sys.argv[2]}))' "$operator_email" "$operator_password")"
+status="$(curl -sS -o "$work_dir/operator-login.json" -w '%{http_code}' -X POST -H 'Content-Type: application/json' --data "$operator_login_body" "$api_url/api/auth/login")"
+assert_status "$status" 401 "$work_dir/operator-login.json"
+
 category_body="$(python -c 'import json,sys; print(json.dumps({"name":sys.argv[1],"description":"Prueba automatizada"}))' "Integración $run_id")"
 status="$(request POST /api/categories "$category_body" "$work_dir/category.json")"
 assert_status "$status" 201 "$work_dir/category.json"
@@ -98,4 +112,4 @@ status="$(request GET "/api/audit-logs?pageSize=100&method=POST" '' "$work_dir/a
 assert_status "$status" 200 "$work_dir/audit-logs.json"
 python -c 'import json,sys; data=json.load(open(sys.argv[1])); assert data["totalCount"] >= 1 and any(x["path"].endswith("/stock-movements") and x["statusCode"] == 200 for x in data["items"])' "$work_dir/audit-logs.json"
 
-echo "Prueba de integración completada: autenticación, SQL Server, inventario, alertas, auditoría, dashboard, reportes y Blob Storage correctos."
+echo "Prueba de integración completada: autenticación, usuarios, SQL Server, inventario, alertas, auditoría, dashboard, reportes y Blob Storage correctos."

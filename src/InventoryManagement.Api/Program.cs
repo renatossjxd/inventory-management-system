@@ -40,6 +40,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             RoleClaimType = "role",
             ClockSkew = TimeSpan.FromMinutes(1)
         };
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var userIdValue = context.Principal?.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+                if (!Guid.TryParse(userIdValue, out var userId)) { context.Fail("Token sin usuario válido."); return; }
+                var db = context.HttpContext.RequestServices.GetRequiredService<InventoryDbContext>();
+                if (!await db.Users.AsNoTracking().AnyAsync(x => x.Id == userId && x.IsActive))
+                    context.Fail("La cuenta está inactiva.");
+            }
+        };
     });
 builder.Services.AddAuthorization();
 builder.Services.AddSwaggerGen(options =>
