@@ -134,3 +134,20 @@ public sealed class PurchaseOrderTests
             [(product, 1, 50m), (product, 2, 50m)]));
     }
 }
+
+public sealed class LowStockNotificationTests
+{
+    [Fact]
+    public void MarkAsRead_RecordsUserAndTimestamp()
+    {
+        var product = new Product("SKU-LOW", "Cable", 5000, 3);
+        var notification = new LowStockNotification(product);
+        var userId = Guid.NewGuid();
+
+        notification.MarkAsRead(userId);
+
+        Assert.True(notification.IsRead);
+        Assert.Equal(userId, notification.ReadByUserId);
+        Assert.NotNull(notification.ReadAtUtc);
+    }
+}

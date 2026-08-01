@@ -85,4 +85,13 @@ status="$(request GET "/api/reports/inventory.csv?search=INT-$run_id" '' "$work_
 assert_status "$status" 200 "$work_dir/inventory.csv"
 python -c 'import sys; text=open(sys.argv[1],encoding="utf-8-sig").read(); assert "SKU;Producto;Categoría" in text and sys.argv[2] in text' "$work_dir/inventory.csv" "INT-$run_id"
 
-echo "Prueba de integración completada: autenticación, SQL Server, inventario, dashboard, reportes y Blob Storage correctos."
+status="$(request POST "/api/products/$product_id/stock-movements" \
+  '{"quantity":-4,"reason":"Salida que activa alerta de stock"}' "$work_dir/low-stock-movement.json")"
+assert_status "$status" 200 "$work_dir/low-stock-movement.json"
+status="$(request GET "/api/notifications?unreadOnly=true" '' "$work_dir/notifications.json")"
+assert_status "$status" 200 "$work_dir/notifications.json"
+notification_id="$(python -c 'import json,sys; items=json.load(open(sys.argv[1])); item=next(x for x in items if x["productId"] == sys.argv[2]); assert not item["isRead"]; print(item["id"])' "$work_dir/notifications.json" "$product_id")"
+status="$(request POST "/api/notifications/$notification_id/read" '' "$work_dir/notification-read.json")"
+assert_status "$status" 204 "$work_dir/notification-read.json"
+
+echo "Prueba de integración completada: autenticación, SQL Server, inventario, alertas, dashboard, reportes y Blob Storage correctos."

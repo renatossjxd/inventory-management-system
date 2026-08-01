@@ -14,12 +14,14 @@ public sealed class InventoryDbContext(DbContextOptions<InventoryDbContext> opti
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
     public DbSet<PurchaseOrderItem> PurchaseOrderItems => Set<PurchaseOrderItem>();
+    public DbSet<LowStockNotification> LowStockNotifications => Set<LowStockNotification>();
     IQueryable<Product> IInventoryDbContext.Products => Products;
     IQueryable<StockMovement> IInventoryDbContext.StockMovements => StockMovements;
     IQueryable<AppUser> IInventoryDbContext.Users => Users;
     IQueryable<Category> IInventoryDbContext.Categories => Categories;
     IQueryable<Supplier> IInventoryDbContext.Suppliers => Suppliers;
     IQueryable<PurchaseOrder> IInventoryDbContext.PurchaseOrders => PurchaseOrders;
+    IQueryable<LowStockNotification> IInventoryDbContext.LowStockNotifications => LowStockNotifications;
     public void AddProduct(Product product) => Products.Add(product);
     public void AddStockMovement(StockMovement movement) => StockMovements.Add(movement);
     public void AddUser(AppUser user) => Users.Add(user);
@@ -28,6 +30,7 @@ public sealed class InventoryDbContext(DbContextOptions<InventoryDbContext> opti
     public void RemoveCategory(Category category) => Categories.Remove(category);
     public void RemoveSupplier(Supplier supplier) => Suppliers.Remove(supplier);
     public void AddPurchaseOrder(PurchaseOrder purchaseOrder) => PurchaseOrders.Add(purchaseOrder);
+    public void AddLowStockNotification(LowStockNotification notification) => LowStockNotifications.Add(notification);
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -100,6 +103,14 @@ public sealed class InventoryDbContext(DbContextOptions<InventoryDbContext> opti
             entity.Ignore(x => x.Subtotal);
             entity.HasOne(x => x.Product).WithMany().HasForeignKey(x => x.ProductId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<LowStockNotification>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => new { x.IsRead, x.CreatedAtUtc });
+            entity.HasOne(x => x.Product).WithMany().HasForeignKey(x => x.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
