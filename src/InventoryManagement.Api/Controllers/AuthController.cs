@@ -31,7 +31,7 @@ public sealed class AuthController(IInventoryDbContext db, IPasswordService pass
     public async Task<ActionResult<AuthResponse>> Login(LoginRequest request, CancellationToken ct)
     {
         var user = await db.Users.SingleOrDefaultAsync(x => x.Email == request.Email.ToLower(), ct);
-        if (user is null || !passwords.Verify(request.Password, user.PasswordHash, user.PasswordSalt))
+        if (user is null || !user.IsActive || !passwords.Verify(request.Password, user.PasswordHash, user.PasswordSalt))
             return Unauthorized(new ProblemDetails { Title = "Credenciales inválidas." });
         return Ok(new AuthResponse(tokens.Create(user)));
     }
@@ -40,5 +40,19 @@ public sealed class AuthController(IInventoryDbContext db, IPasswordService pass
     [Authorize(Roles = UserRoles.Admin)]
     public async Task<ActionResult<IReadOnlyList<UserResponse>>> GetUsers(CancellationToken ct) => Ok(await db.Users
         .AsNoTracking().OrderBy(x => x.DisplayName)
-        .Select(x => new UserResponse(x.Id, x.Email, x.DisplayName, x.Role, x.CreatedAtUtc)).ToListAsync(ct));
+        .Select(x => new UserResponse(x.Id, x.Email, x.DisplayName, x.Role, x.IsActive, x.CreatedAtUtc)).ToListAsync(ct));
+
+    [HttpPut("users/{id:guid}/access")]
+    [Authorize(Roles = UserRoles.Admin)]
+    public async Task<ActionResult<UserResponse>> UpdateAccess(Guid id, UpdateUserAccessRequest request, CancellationToken ct)
+    {
+        var user = await db.Users.SingleOrDefaultAsync(x => x.Id == id, ct);
+        if (user is null) return NotFound();
+        var currentUserId = Guid.Parse(User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)!.Value);
+        if (user.Id == currentUserId && (!request.IsActive || !string.Equals(request.Role, UserRoles.Admin, StringComparison.OrdinalIgnoreCase)))
+            return BadRequest(new ProblemDetails { Title = "No puedes quitar tu propio acceso administrativo." });
+        user.UpdateAccess(request.Role, request.IsActive);
+        await db.SaveChangesAsync(ct);
+        return Ok(new UserResponse(user.Id, user.Email, user.DisplayName, user.Role, user.IsActive, user.CreatedAtUtc));
+    }
 }

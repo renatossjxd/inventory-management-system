@@ -42,6 +42,7 @@
         <button class="nav-item" data-view="products"><span aria-hidden="true">□</span> Productos</button>
         <button class="nav-item" data-view="orders"><span aria-hidden="true">◇</span> Órdenes de compra</button>
         <button id="audit-nav" class="nav-item" data-view="audit"><span aria-hidden="true">≣</span> Auditoría</button>
+        <button id="users-nav" class="nav-item" data-view="users"><span aria-hidden="true">◎</span> Usuarios</button>
         <a class="nav-item" href="/swagger" target="_blank"><span aria-hidden="true">⌘</span> API Swagger</a>
       </nav>
       <div class="sidebar-foot">
@@ -111,6 +112,13 @@
         </article>
       </section>
 
+      <section id="users-view" hidden>
+        <article class="panel product-panel">
+          <div class="toolbar users-toolbar"><div><strong>Usuarios del sistema</strong><p class="muted">Roles y accesos de administradores y operadores.</p></div><button id="new-user-button" class="button primary compact">Nuevo usuario</button></div>
+          <div class="table-scroll"><table><thead><tr><th>Usuario</th><th>Rol</th><th>Estado</th><th>Creado</th><th></th></tr></thead><tbody id="users-body"></tbody></table></div>
+        </article>
+      </section>
+
       <div id="loading" class="loading" hidden><span></span><p>Cargando información…</p></div>
       <div id="toast" class="toast" role="status" hidden></div>
     </main>
@@ -163,6 +171,19 @@
       <header><div><p class="eyebrow">CENTRO DE ALERTAS</p><h2>Notificaciones de stock</h2></div><button type="button" class="modal-close" data-close-dialog="notifications-dialog" aria-label="Cerrar">×</button></header>
       <div id="notifications-list" class="notifications-list"></div>
     </section>
+  </dialog>
+  <dialog id="user-dialog" class="modal">
+    <form id="user-form" class="modal-card small">
+      <header><div><p class="eyebrow">ADMINISTRACIÓN</p><h2>Crear usuario</h2></div><button type="button" class="modal-close" data-close-dialog="user-dialog" aria-label="Cerrar">×</button></header>
+      <div class="form-grid one-column">
+        <label>Nombre<input name="displayName" required maxlength="120" autocomplete="name"></label>
+        <label>Correo electrónico<input name="email" type="email" required maxlength="320" autocomplete="email"></label>
+        <label>Contraseña temporal<input name="password" type="password" required minlength="10" autocomplete="new-password"></label>
+        <label>Rol<select name="role" required><option value="Operator">Operador</option><option value="Admin">Administrador</option></select></label>
+      </div>
+      <p class="form-error" data-form-error hidden></p>
+      <footer><button type="button" class="button secondary" data-close-dialog="user-dialog">Cancelar</button><button type="submit" class="button primary compact">Crear usuario</button></footer>
+    </form>
   </dialog>
   <script src="/js/app.js" defer></script>
 </body>

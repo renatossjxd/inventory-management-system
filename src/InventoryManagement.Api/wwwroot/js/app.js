@@ -38,6 +38,7 @@ function showApp() {
   $('#new-product-button').hidden = state.user.role !== 'Admin';
   $('#new-order-button').hidden = state.user.role !== 'Admin';
   $('#audit-nav').hidden = state.user.role !== 'Admin';
+  $('#users-nav').hidden = state.user.role !== 'Admin';
   loadNotificationCount();
   changeView('dashboard');
 }
@@ -150,13 +151,28 @@ async function loadAuditLogs() {
   finally { setLoading(false); }
 }
 
+async function loadUsers() {
+  setLoading(true);
+  try {
+    const users = await (await api('/api/auth/users')).json();
+    $('#users-body').innerHTML = users.map(user => { const isCurrent = user.id === state.user.sub; return `<tr><td><div class="product-name"><span class="product-symbol">${escapeHtml(user.displayName[0])}</span><div><strong>${escapeHtml(user.displayName)}${isCurrent ? ' (tú)' : ''}</strong><small>${escapeHtml(user.email)}</small></div></div></td><td><span class="badge">${user.role === 'Admin' ? 'Administrador' : 'Operador'}</span></td><td><span class="badge ${user.isActive ? '' : 'danger'}">${user.isActive ? 'Activo' : 'Inactivo'}</span></td><td>${new Date(user.createdAtUtc).toLocaleDateString('es-CL')}</td><td><div class="access-controls">${isCurrent ? '<small class="muted">Sesión actual</small>' : `<select data-user-role="${user.id}" data-user-is-active="${user.isActive}"><option value="Operator" ${user.role === 'Operator' ? 'selected' : ''}>Operador</option><option value="Admin" ${user.role === 'Admin' ? 'selected' : ''}>Administrador</option></select><button class="access-toggle ${user.isActive ? '' : 'activate'}" data-user-active="${user.id}" data-active="${user.isActive}">${user.isActive ? 'Desactivar' : 'Activar'}</button>`}</div></td></tr>`; }).join('');
+    document.querySelectorAll('[data-user-role]').forEach(select => select.addEventListener('change', () => updateUserAccess(select.dataset.userRole, select.value, select.dataset.userIsActive === 'true')));
+    document.querySelectorAll('[data-user-active]').forEach(button => button.addEventListener('click', () => { const role = document.querySelector(`[data-user-role="${button.dataset.userActive}"]`).value; updateUserAccess(button.dataset.userActive, role, button.dataset.active !== 'true'); }));
+  } catch (err) { toast(err.message); }
+  finally { setLoading(false); }
+}
+
+async function updateUserAccess(id, role, isActive) {
+  try { await api(`/api/auth/users/${id}/access`, { method: 'PUT', body: JSON.stringify({ role, isActive }) }); await loadUsers(); toast('Acceso actualizado correctamente.'); } catch (err) { toast(err.message); await loadUsers(); }
+}
+
 function changeView(view) {
   document.querySelectorAll('.nav-item[data-view]').forEach(item => item.classList.toggle('active', item.dataset.view === view));
-  $('#dashboard-view').hidden = view !== 'dashboard'; $('#products-view').hidden = view !== 'products'; $('#orders-view').hidden = view !== 'orders'; $('#audit-view').hidden = view !== 'audit';
-  const headings = { dashboard: ['PANEL GENERAL', 'Resumen de inventario'], products: ['CATÁLOGO', 'Productos'], orders: ['ABASTECIMIENTO', 'Órdenes de compra'], audit: ['SEGURIDAD Y CONTROL', 'Auditoría de operaciones'] };
+  $('#dashboard-view').hidden = view !== 'dashboard'; $('#products-view').hidden = view !== 'products'; $('#orders-view').hidden = view !== 'orders'; $('#audit-view').hidden = view !== 'audit'; $('#users-view').hidden = view !== 'users';
+  const headings = { dashboard: ['PANEL GENERAL', 'Resumen de inventario'], products: ['CATÁLOGO', 'Productos'], orders: ['ABASTECIMIENTO', 'Órdenes de compra'], audit: ['SEGURIDAD Y CONTROL', 'Auditoría de operaciones'], users: ['ADMINISTRACIÓN', 'Usuarios y accesos'] };
   $('#page-eyebrow').textContent = headings[view][0];
   $('#page-title').textContent = headings[view][1];
-  if (view === 'products') loadProducts(); else if (view === 'orders') loadOrders(); else if (view === 'audit') loadAuditLogs(); else loadDashboard();
+  if (view === 'products') loadProducts(); else if (view === 'orders') loadOrders(); else if (view === 'audit') loadAuditLogs(); else if (view === 'users') loadUsers(); else loadDashboard();
 }
 
 function escapeHtml(value) { const el = document.createElement('span'); el.textContent = value ?? ''; return el.innerHTML; }
@@ -222,10 +238,18 @@ $('#order-form').addEventListener('submit', async event => {
     closeDialog('order-dialog'); await loadOrders(); toast('Orden de compra creada correctamente.');
   } catch (err) { formError(form, err.message); } finally { submit.disabled = false; }
 });
+$('#user-form').addEventListener('submit', async event => {
+  event.preventDefault(); const form = event.currentTarget; formError(form); const submit = event.submitter; submit.disabled = true;
+  try {
+    const data = new FormData(form);
+    await api('/api/auth/register', { method: 'POST', body: JSON.stringify({ email: data.get('email'), displayName: data.get('displayName'), password: data.get('password'), role: data.get('role') }) });
+    closeDialog('user-dialog'); await loadUsers(); toast('Usuario creado correctamente.');
+  } catch (err) { formError(form, err.message); } finally { submit.disabled = false; }
+});
 document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => changeView(button.dataset.view)));
 document.querySelectorAll('[data-go-products]').forEach(button => button.addEventListener('click', () => changeView('products')));
 $('#logout-button').addEventListener('click', logout);
-$('#refresh-button').addEventListener('click', () => { if (!$('#audit-view').hidden) loadAuditLogs(); else if (!$('#orders-view').hidden) loadOrders(); else if (!$('#products-view').hidden) loadProducts(); else loadDashboard(); });
+$('#refresh-button').addEventListener('click', () => { if (!$('#users-view').hidden) loadUsers(); else if (!$('#audit-view').hidden) loadAuditLogs(); else if (!$('#orders-view').hidden) loadOrders(); else if (!$('#products-view').hidden) loadProducts(); else loadDashboard(); });
 let searchTimer; $('#product-search').addEventListener('input', event => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { state.search = event.target.value.trim(); state.page = 1; loadProducts(); }, 350); });
 $('#low-stock-filter').addEventListener('change', event => { state.lowStock = event.target.checked; state.page = 1; loadProducts(); });
 $('#previous-page').addEventListener('click', () => { if (state.page > 1) { state.page--; loadProducts(); } });
@@ -233,6 +257,7 @@ $('#next-page').addEventListener('click', () => { if (state.page < state.totalPa
 $('#export-button').addEventListener('click', async () => { try { const params = new URLSearchParams(); if (state.search) params.set('search', state.search); if (state.lowStock) params.set('lowStock', 'true'); const response = await api(`/api/reports/inventory.csv?${params}`); const blob = await response.blob(); const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'inventario.csv'; anchor.click(); URL.revokeObjectURL(url); } catch (err) { toast(err.message); } });
 $('#new-product-button').addEventListener('click', openProductDialog);
 $('#new-order-button').addEventListener('click', openOrderDialog);
+$('#new-user-button').addEventListener('click', () => { const form = $('#user-form'); form.reset(); formError(form); $('#user-dialog').showModal(); });
 $('#notifications-button').addEventListener('click', openNotifications);
 $('#add-order-line').addEventListener('click', addOrderLine);
 $('#order-supplier').addEventListener('change', refreshOrderProductOptions);

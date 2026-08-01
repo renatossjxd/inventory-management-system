@@ -66,6 +66,7 @@ public sealed class InventoryDbContext(DbContextOptions<InventoryDbContext> opti
             entity.Property(x => x.Email).HasMaxLength(320).IsRequired();
             entity.Property(x => x.DisplayName).HasMaxLength(120).IsRequired();
             entity.Property(x => x.Role).HasMaxLength(30).IsRequired();
+            entity.Property(x => x.IsActive).HasDefaultValue(true);
         });
 
         modelBuilder.Entity<Category>(entity =>
