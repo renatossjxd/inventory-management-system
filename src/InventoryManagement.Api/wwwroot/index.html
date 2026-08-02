@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Panel administrativo del Sistema de Gestión de Inventario">
   <title>Inventario | Panel administrativo</title>
-  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="/css/app.css?v=20260802.1">
 </head>
 <body>
   <div id="login-view" class="login-shell">
@@ -40,6 +40,8 @@
       <nav aria-label="Navegación principal">
         <button class="nav-item active" data-view="dashboard"><span aria-hidden="true">◫</span> Resumen</button>
         <button class="nav-item" data-view="products"><span aria-hidden="true">□</span> Productos</button>
+        <button id="categories-nav" class="nav-item" data-view="categories"><span aria-hidden="true">○</span> Categorías</button>
+        <button id="suppliers-nav" class="nav-item" data-view="suppliers"><span aria-hidden="true">◇</span> Proveedores</button>
         <button class="nav-item" data-view="orders"><span aria-hidden="true">◇</span> Órdenes de compra</button>
         <button id="audit-nav" class="nav-item" data-view="audit"><span aria-hidden="true">≣</span> Auditoría</button>
         <button id="users-nav" class="nav-item" data-view="users"><span aria-hidden="true">◎</span> Usuarios</button>
@@ -90,6 +92,26 @@
         </article>
       </section>
 
+      <section id="categories-view" hidden>
+        <article class="panel product-panel">
+          <div class="toolbar catalog-toolbar">
+            <div><strong>Categorías del catálogo</strong><p class="muted">Organiza los productos para facilitar su búsqueda y análisis.</p></div>
+            <button id="new-category-button" class="button primary compact">Nueva categoría</button>
+          </div>
+          <div class="table-scroll"><table><thead><tr><th>Categoría</th><th>Descripción</th><th>Creada</th><th></th></tr></thead><tbody id="categories-body"></tbody></table></div>
+        </article>
+      </section>
+
+      <section id="suppliers-view" hidden>
+        <article class="panel product-panel">
+          <div class="toolbar catalog-toolbar">
+            <div><strong>Proveedores</strong><p class="muted">Mantén disponibles los datos de contacto y abastecimiento.</p></div>
+            <button id="new-supplier-button" class="button primary compact">Nuevo proveedor</button>
+          </div>
+          <div class="table-scroll"><table><thead><tr><th>Proveedor</th><th>Correo</th><th>Teléfono</th><th>Creado</th><th></th></tr></thead><tbody id="suppliers-body"></tbody></table></div>
+        </article>
+      </section>
+
       <section id="orders-view" hidden>
         <article class="panel product-panel">
           <div class="toolbar orders-toolbar">
@@ -123,6 +145,33 @@
       <div id="toast" class="toast" role="status" hidden></div>
     </main>
   </div>
+
+  <dialog id="category-dialog" class="modal">
+    <form id="category-form" class="modal-card small">
+      <header><div><p class="eyebrow">CATÁLOGO</p><h2 id="category-dialog-title">Crear categoría</h2></div><button type="button" class="modal-close" data-close-dialog="category-dialog" aria-label="Cerrar">×</button></header>
+      <input name="id" type="hidden">
+      <div class="form-grid one-column">
+        <label>Nombre<input name="name" required maxlength="120" placeholder="Ej. Tecnología"></label>
+        <label>Descripción<textarea name="description" rows="3" maxlength="500" placeholder="Descripción opcional"></textarea></label>
+      </div>
+      <p class="form-error" data-form-error hidden></p>
+      <footer><button type="button" class="button secondary" data-close-dialog="category-dialog">Cancelar</button><button type="submit" class="button primary compact">Guardar categoría</button></footer>
+    </form>
+  </dialog>
+
+  <dialog id="supplier-dialog" class="modal">
+    <form id="supplier-form" class="modal-card small">
+      <header><div><p class="eyebrow">ABASTECIMIENTO</p><h2 id="supplier-dialog-title">Crear proveedor</h2></div><button type="button" class="modal-close" data-close-dialog="supplier-dialog" aria-label="Cerrar">×</button></header>
+      <input name="id" type="hidden">
+      <div class="form-grid one-column">
+        <label>Nombre<input name="name" required maxlength="160" placeholder="Ej. Distribuidora Central"></label>
+        <label>Correo electrónico<input name="email" type="email" maxlength="320" placeholder="ventas@proveedor.cl"></label>
+        <label>Teléfono<input name="phone" maxlength="40" placeholder="+56 9 1234 5678"></label>
+      </div>
+      <p class="form-error" data-form-error hidden></p>
+      <footer><button type="button" class="button secondary" data-close-dialog="supplier-dialog">Cancelar</button><button type="submit" class="button primary compact">Guardar proveedor</button></footer>
+    </form>
+  </dialog>
 
   <dialog id="product-dialog" class="modal">
     <form id="product-form" class="modal-card">
@@ -185,6 +234,6 @@
       <footer><button type="button" class="button secondary" data-close-dialog="user-dialog">Cancelar</button><button type="submit" class="button primary compact">Crear usuario</button></footer>
     </form>
   </dialog>
-  <script src="/js/app.js" defer></script>
+  <script src="/js/app.js?v=20260802.1" defer></script>
 </body>
 </html>

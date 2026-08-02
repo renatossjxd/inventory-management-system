@@ -1,4 +1,4 @@
-const state = { token: sessionStorage.getItem('inventoryToken'), user: null, page: 1, totalPages: 1, search: '', lowStock: false, products: [], orderProducts: [], orderSuppliers: [], auditPage: 1, auditTotalPages: 1 };
+const state = { token: sessionStorage.getItem('inventoryToken'), user: null, page: 1, totalPages: 1, search: '', lowStock: false, products: [], categories: [], suppliers: [], orderProducts: [], orderSuppliers: [], auditPage: 1, auditTotalPages: 1 };
 const $ = (selector) => document.querySelector(selector);
 const money = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 });
 const number = new Intl.NumberFormat('es-CL');
@@ -36,6 +36,8 @@ function showApp() {
   $('#user-initial').textContent = name[0].toUpperCase();
   $('#export-button').hidden = state.user.role !== 'Admin';
   $('#new-product-button').hidden = state.user.role !== 'Admin';
+  $('#categories-nav').hidden = state.user.role !== 'Admin';
+  $('#suppliers-nav').hidden = state.user.role !== 'Admin';
   $('#new-order-button').hidden = state.user.role !== 'Admin';
   $('#audit-nav').hidden = state.user.role !== 'Admin';
   $('#users-nav').hidden = state.user.role !== 'Admin';
@@ -166,13 +168,60 @@ async function updateUserAccess(id, role, isActive) {
   try { await api(`/api/auth/users/${id}/access`, { method: 'PUT', body: JSON.stringify({ role, isActive }) }); await loadUsers(); toast('Acceso actualizado correctamente.'); } catch (err) { toast(err.message); await loadUsers(); }
 }
 
+async function loadCategories() {
+  setLoading(true);
+  try {
+    state.categories = await (await api('/api/categories')).json();
+    $('#categories-body').innerHTML = state.categories.length ? state.categories.map(item => `<tr><td><div class="product-name"><span class="product-symbol">${escapeHtml(item.name[0])}</span><strong>${escapeHtml(item.name)}</strong></div></td><td>${escapeHtml(item.description || '—')}</td><td>${new Date(item.createdAtUtc).toLocaleDateString('es-CL')}</td><td><div class="catalog-actions"><button data-edit-category="${item.id}">Editar</button><button class="danger" data-delete-category="${item.id}">Eliminar</button></div></td></tr>`).join('') : '<tr><td colspan="4" class="empty">Todavía no hay categorías registradas.</td></tr>';
+    document.querySelectorAll('[data-edit-category]').forEach(button => button.addEventListener('click', () => openCategoryDialog(state.categories.find(x => x.id === button.dataset.editCategory))));
+    document.querySelectorAll('[data-delete-category]').forEach(button => button.addEventListener('click', () => deleteCatalogItem('categories', button.dataset.deleteCategory, 'categoría', loadCategories)));
+  } catch (err) { toast(err.message); }
+  finally { setLoading(false); }
+}
+
+async function loadSuppliers() {
+  setLoading(true);
+  try {
+    state.suppliers = await (await api('/api/suppliers')).json();
+    $('#suppliers-body').innerHTML = state.suppliers.length ? state.suppliers.map(item => `<tr><td><div class="product-name"><span class="product-symbol">${escapeHtml(item.name[0])}</span><strong>${escapeHtml(item.name)}</strong></div></td><td>${escapeHtml(item.email || '—')}</td><td>${escapeHtml(item.phone || '—')}</td><td>${new Date(item.createdAtUtc).toLocaleDateString('es-CL')}</td><td><div class="catalog-actions"><button data-edit-supplier="${item.id}">Editar</button><button class="danger" data-delete-supplier="${item.id}">Eliminar</button></div></td></tr>`).join('') : '<tr><td colspan="5" class="empty">Todavía no hay proveedores registrados.</td></tr>';
+    document.querySelectorAll('[data-edit-supplier]').forEach(button => button.addEventListener('click', () => openSupplierDialog(state.suppliers.find(x => x.id === button.dataset.editSupplier))));
+    document.querySelectorAll('[data-delete-supplier]').forEach(button => button.addEventListener('click', () => deleteCatalogItem('suppliers', button.dataset.deleteSupplier, 'proveedor', loadSuppliers)));
+  } catch (err) { toast(err.message); }
+  finally { setLoading(false); }
+}
+
+function openCategoryDialog(category = null) {
+  const form = $('#category-form'); form.reset(); formError(form);
+  form.elements.id.value = category?.id || '';
+  form.elements.name.value = category?.name || '';
+  form.elements.description.value = category?.description || '';
+  $('#category-dialog-title').textContent = category ? 'Editar categoría' : 'Crear categoría';
+  $('#category-dialog').showModal();
+}
+
+function openSupplierDialog(supplier = null) {
+  const form = $('#supplier-form'); form.reset(); formError(form);
+  form.elements.id.value = supplier?.id || '';
+  form.elements.name.value = supplier?.name || '';
+  form.elements.email.value = supplier?.email || '';
+  form.elements.phone.value = supplier?.phone || '';
+  $('#supplier-dialog-title').textContent = supplier ? 'Editar proveedor' : 'Crear proveedor';
+  $('#supplier-dialog').showModal();
+}
+
+async function deleteCatalogItem(resource, id, label, reload) {
+  if (!confirm(`¿Confirmas que deseas eliminar este ${label}?`)) return;
+  try { await api(`/api/${resource}/${id}`, { method: 'DELETE' }); await reload(); toast(`${label[0].toUpperCase()}${label.slice(1)} eliminado correctamente.`); }
+  catch (err) { toast(err.message); }
+}
+
 function changeView(view) {
   document.querySelectorAll('.nav-item[data-view]').forEach(item => item.classList.toggle('active', item.dataset.view === view));
-  $('#dashboard-view').hidden = view !== 'dashboard'; $('#products-view').hidden = view !== 'products'; $('#orders-view').hidden = view !== 'orders'; $('#audit-view').hidden = view !== 'audit'; $('#users-view').hidden = view !== 'users';
-  const headings = { dashboard: ['PANEL GENERAL', 'Resumen de inventario'], products: ['CATÁLOGO', 'Productos'], orders: ['ABASTECIMIENTO', 'Órdenes de compra'], audit: ['SEGURIDAD Y CONTROL', 'Auditoría de operaciones'], users: ['ADMINISTRACIÓN', 'Usuarios y accesos'] };
+  $('#dashboard-view').hidden = view !== 'dashboard'; $('#products-view').hidden = view !== 'products'; $('#categories-view').hidden = view !== 'categories'; $('#suppliers-view').hidden = view !== 'suppliers'; $('#orders-view').hidden = view !== 'orders'; $('#audit-view').hidden = view !== 'audit'; $('#users-view').hidden = view !== 'users';
+  const headings = { dashboard: ['PANEL GENERAL', 'Resumen de inventario'], products: ['CATÁLOGO', 'Productos'], categories: ['CATÁLOGO', 'Categorías'], suppliers: ['ABASTECIMIENTO', 'Proveedores'], orders: ['ABASTECIMIENTO', 'Órdenes de compra'], audit: ['SEGURIDAD Y CONTROL', 'Auditoría de operaciones'], users: ['ADMINISTRACIÓN', 'Usuarios y accesos'] };
   $('#page-eyebrow').textContent = headings[view][0];
   $('#page-title').textContent = headings[view][1];
-  if (view === 'products') loadProducts(); else if (view === 'orders') loadOrders(); else if (view === 'audit') loadAuditLogs(); else if (view === 'users') loadUsers(); else loadDashboard();
+  if (view === 'products') loadProducts(); else if (view === 'categories') loadCategories(); else if (view === 'suppliers') loadSuppliers(); else if (view === 'orders') loadOrders(); else if (view === 'audit') loadAuditLogs(); else if (view === 'users') loadUsers(); else loadDashboard();
 }
 
 function escapeHtml(value) { const el = document.createElement('span'); el.textContent = value ?? ''; return el.innerHTML; }
@@ -213,6 +262,24 @@ async function updateOrder(id, action, message) {
 function closeDialog(id) { document.getElementById(id).close(); }
 function formError(form, message = '') { const error = form.querySelector('[data-form-error]'); error.textContent = message; error.hidden = !message; }
 
+$('#category-form').addEventListener('submit', async event => {
+  event.preventDefault(); const form = event.currentTarget; formError(form); const submit = event.submitter; submit.disabled = true;
+  try {
+    const data = new FormData(form); const id = data.get('id');
+    await api(id ? `/api/categories/${id}` : '/api/categories', { method: id ? 'PUT' : 'POST', body: JSON.stringify({ name: data.get('name'), description: data.get('description') || null }) });
+    closeDialog('category-dialog'); await loadCategories(); toast(id ? 'Categoría actualizada correctamente.' : 'Categoría creada correctamente.');
+  } catch (err) { formError(form, err.message); } finally { submit.disabled = false; }
+});
+
+$('#supplier-form').addEventListener('submit', async event => {
+  event.preventDefault(); const form = event.currentTarget; formError(form); const submit = event.submitter; submit.disabled = true;
+  try {
+    const data = new FormData(form); const id = data.get('id');
+    await api(id ? `/api/suppliers/${id}` : '/api/suppliers', { method: id ? 'PUT' : 'POST', body: JSON.stringify({ name: data.get('name'), email: data.get('email') || null, phone: data.get('phone') || null }) });
+    closeDialog('supplier-dialog'); await loadSuppliers(); toast(id ? 'Proveedor actualizado correctamente.' : 'Proveedor creado correctamente.');
+  } catch (err) { formError(form, err.message); } finally { submit.disabled = false; }
+});
+
 $('#product-form').addEventListener('submit', async event => {
   event.preventDefault(); const form = event.currentTarget; formError(form); const submit = event.submitter; submit.disabled = true;
   try {
@@ -249,13 +316,15 @@ $('#user-form').addEventListener('submit', async event => {
 document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => changeView(button.dataset.view)));
 document.querySelectorAll('[data-go-products]').forEach(button => button.addEventListener('click', () => changeView('products')));
 $('#logout-button').addEventListener('click', logout);
-$('#refresh-button').addEventListener('click', () => { if (!$('#users-view').hidden) loadUsers(); else if (!$('#audit-view').hidden) loadAuditLogs(); else if (!$('#orders-view').hidden) loadOrders(); else if (!$('#products-view').hidden) loadProducts(); else loadDashboard(); });
+$('#refresh-button').addEventListener('click', () => { if (!$('#users-view').hidden) loadUsers(); else if (!$('#audit-view').hidden) loadAuditLogs(); else if (!$('#orders-view').hidden) loadOrders(); else if (!$('#suppliers-view').hidden) loadSuppliers(); else if (!$('#categories-view').hidden) loadCategories(); else if (!$('#products-view').hidden) loadProducts(); else loadDashboard(); });
 let searchTimer; $('#product-search').addEventListener('input', event => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { state.search = event.target.value.trim(); state.page = 1; loadProducts(); }, 350); });
 $('#low-stock-filter').addEventListener('change', event => { state.lowStock = event.target.checked; state.page = 1; loadProducts(); });
 $('#previous-page').addEventListener('click', () => { if (state.page > 1) { state.page--; loadProducts(); } });
 $('#next-page').addEventListener('click', () => { if (state.page < state.totalPages) { state.page++; loadProducts(); } });
 $('#export-button').addEventListener('click', async () => { try { const params = new URLSearchParams(); if (state.search) params.set('search', state.search); if (state.lowStock) params.set('lowStock', 'true'); const response = await api(`/api/reports/inventory.csv?${params}`); const blob = await response.blob(); const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'inventario.csv'; anchor.click(); URL.revokeObjectURL(url); } catch (err) { toast(err.message); } });
 $('#new-product-button').addEventListener('click', openProductDialog);
+$('#new-category-button').addEventListener('click', () => openCategoryDialog());
+$('#new-supplier-button').addEventListener('click', () => openSupplierDialog());
 $('#new-order-button').addEventListener('click', openOrderDialog);
 $('#new-user-button').addEventListener('click', () => { const form = $('#user-form'); form.reset(); formError(form); $('#user-dialog').showModal(); });
 $('#notifications-button').addEventListener('click', openNotifications);
