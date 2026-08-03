@@ -90,11 +90,12 @@ async function loadProducts() {
     if (state.lowStock) params.set('lowStock', 'true');
     const data = await (await api(`/api/products?${params}`)).json();
     state.totalPages = Math.max(1, data.totalPages); state.products = data.items;
-    $('#products-body').innerHTML = data.items.length ? data.items.map(p => `<tr><td><div class="product-name"><span class="product-symbol">${escapeHtml(p.name[0])}</span><div><strong>${escapeHtml(p.name)}</strong><small>${escapeHtml(p.sku)}</small></div></div></td><td>${escapeHtml(p.categoryName || 'Sin categoría')}</td><td class="price">${money.format(p.price)}</td><td>${number.format(p.currentStock)} / mín. ${number.format(p.minimumStock)}</td><td><span class="badge ${p.isLowStock ? 'danger' : ''}">${p.isLowStock ? 'Stock bajo' : 'Disponible'}</span></td><td><div class="row-actions"><button class="stock-button" data-stock-id="${p.id}">Ajustar stock</button></div></td></tr>`).join('') : '<tr><td colspan="6" class="empty">No encontramos productos para estos filtros.</td></tr>';
+    $('#products-body').innerHTML = data.items.length ? data.items.map(p => `<tr><td><div class="product-name">${p.imageUrl ? `<img class="product-thumbnail" src="${escapeHtml(p.imageUrl)}" alt="">` : `<span class="product-symbol">${escapeHtml(p.name[0])}</span>`}<div><strong>${escapeHtml(p.name)}</strong><small>${escapeHtml(p.sku)}</small></div></div></td><td>${escapeHtml(p.categoryName || 'Sin categoría')}</td><td class="price">${money.format(p.price)}</td><td>${number.format(p.currentStock)} / mín. ${number.format(p.minimumStock)}</td><td><span class="badge ${p.isLowStock ? 'danger' : ''}">${p.isLowStock ? 'Stock bajo' : 'Disponible'}</span></td><td><div class="row-actions"><button class="stock-button" data-stock-id="${p.id}">Ajustar stock</button>${state.user.role === 'Admin' ? `<button data-image-id="${p.id}">Imagen</button>` : ''}</div></td></tr>`).join('') : '<tr><td colspan="6" class="empty">No encontramos productos para estos filtros.</td></tr>';
     $('#product-count').textContent = `${number.format(data.totalCount)} producto${data.totalCount === 1 ? '' : 's'}`;
     $('#page-number').textContent = `${data.page} de ${state.totalPages}`;
     $('#previous-page').disabled = state.page <= 1; $('#next-page').disabled = state.page >= state.totalPages;
     document.querySelectorAll('[data-stock-id]').forEach(button => button.addEventListener('click', () => { const product = state.products.find(x => x.id === button.dataset.stockId); if (product) openStockDialog(product.id, product.name); }));
+    document.querySelectorAll('[data-image-id]').forEach(button => button.addEventListener('click', () => { const product = state.products.find(x => x.id === button.dataset.imageId); if (product) openProductImageDialog(product); }));
   } catch (err) { toast(err.message); }
   finally { setLoading(false); }
 }
@@ -230,7 +231,11 @@ async function loadCatalogOptions() {
   $('#product-category').innerHTML = '<option value="">Selecciona una categoría</option>' + categories.map(x => `<option value="${x.id}">${escapeHtml(x.name)}</option>`).join('');
   $('#product-supplier').innerHTML = '<option value="">Sin proveedor</option>' + suppliers.map(x => `<option value="${x.id}">${escapeHtml(x.name)}</option>`).join('');
 }
-async function openProductDialog() { try { await loadCatalogOptions(); $('#product-form').reset(); $('#product-dialog').showModal(); } catch (err) { toast(err.message); } }
+async function openProductDialog() { try { await loadCatalogOptions(); $('#product-form').reset(); setImagePreview($('#new-product-image-preview')); $('#product-dialog').showModal(); } catch (err) { toast(err.message); } }
+function setImagePreview(element, url) { element.innerHTML = url ? `<img src="${escapeHtml(url)}" alt="Vista previa del producto">` : 'Sin imagen'; }
+function previewSelectedImage(input, target) { const file = input.files[0]; if (!file) return setImagePreview(target); const url = URL.createObjectURL(file); setImagePreview(target, url); target.querySelector('img').addEventListener('load', () => URL.revokeObjectURL(url), { once: true }); }
+function openProductImageDialog(product) { const form = $('#product-image-form'); form.reset(); form.elements.productId.value = product.id; $('#image-product-name').textContent = product.name; setImagePreview($('#product-image-preview'), product.imageUrl); $('#product-image-dialog').showModal(); }
+async function uploadProductImage(productId, file) { const imageData = new FormData(); imageData.append('file', file); return api(`/api/products/${productId}/image`, { method: 'POST', body: imageData }); }
 function openStockDialog(id, name) { const form = $('#stock-form'); form.reset(); form.elements.productId.value = id; $('#stock-product-name').textContent = name; $('#stock-dialog').showModal(); }
 async function openOrderDialog() {
   try {
@@ -284,9 +289,18 @@ $('#product-form').addEventListener('submit', async event => {
   event.preventDefault(); const form = event.currentTarget; formError(form); const submit = event.submitter; submit.disabled = true;
   try {
     const data = new FormData(form);
-    await api('/api/products', { method: 'POST', body: JSON.stringify({ sku:data.get('sku'), name:data.get('name'), price:Number(data.get('price')), minimumStock:Number(data.get('minimumStock')), description:data.get('description') || null, categoryId:data.get('categoryId'), supplierId:data.get('supplierId') || null }) });
-    closeDialog('product-dialog'); state.page = 1; await loadProducts(); toast('Producto creado correctamente.');
+    const product = await (await api('/api/products', { method: 'POST', body: JSON.stringify({ sku:data.get('sku'), name:data.get('name'), price:Number(data.get('price')), minimumStock:Number(data.get('minimumStock')), description:data.get('description') || null, categoryId:data.get('categoryId'), supplierId:data.get('supplierId') || null }) })).json();
+    let message = 'Producto creado correctamente.'; const image = data.get('image');
+    if (image?.size) { try { await uploadProductImage(product.id, image); } catch (err) { message = `Producto creado, pero la imagen no se pudo guardar: ${err.message}`; } }
+    closeDialog('product-dialog'); state.page = 1; await loadProducts(); toast(message);
   } catch (err) { formError(form, err.message); } finally { submit.disabled = false; }
+});
+$('#new-product-image').addEventListener('change', event => previewSelectedImage(event.target, $('#new-product-image-preview')));
+$('#product-image-form').elements.file.addEventListener('change', event => previewSelectedImage(event.target, $('#product-image-preview')));
+$('#product-image-form').addEventListener('submit', async event => {
+  event.preventDefault(); const form = event.currentTarget; formError(form); const submit = event.submitter; submit.disabled = true;
+  try { const data = new FormData(form); await uploadProductImage(data.get('productId'), data.get('file')); closeDialog('product-image-dialog'); await loadProducts(); toast('Imagen actualizada correctamente.'); }
+  catch (err) { formError(form, err.message); } finally { submit.disabled = false; }
 });
 $('#stock-form').addEventListener('submit', async event => {
   event.preventDefault(); const form = event.currentTarget; formError(form); const submit = event.submitter; submit.disabled = true;

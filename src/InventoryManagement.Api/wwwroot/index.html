@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Panel administrativo del Sistema de Gestión de Inventario">
   <title>Inventario | Panel administrativo</title>
-  <link rel="stylesheet" href="/css/app.css?v=20260802.1">
+  <link rel="stylesheet" href="/css/app.css?v=20260802.2">
 </head>
 <body>
   <div id="login-view" class="login-shell">
@@ -184,9 +184,25 @@
         <label>Categoría<select name="categoryId" id="product-category" required></select></label>
         <label>Proveedor<select name="supplierId" id="product-supplier"><option value="">Sin proveedor</option></select></label>
         <label class="wide">Descripción<textarea name="description" rows="3" maxlength="500" placeholder="Descripción opcional"></textarea></label>
+        <label class="wide image-field">Imagen del producto
+          <span class="image-picker"><span id="new-product-image-preview" class="image-preview" aria-hidden="true">Sin imagen</span><span><input id="new-product-image" name="image" type="file" accept="image/jpeg,image/png,image/webp"><small>JPEG, PNG o WebP. Máximo 5 MB.</small></span></span>
+        </label>
       </div>
       <p class="form-error" data-form-error hidden></p>
       <footer><button type="button" class="button secondary" data-close-dialog="product-dialog">Cancelar</button><button type="submit" class="button primary compact">Guardar producto</button></footer>
+    </form>
+  </dialog>
+
+  <dialog id="product-image-dialog" class="modal">
+    <form id="product-image-form" class="modal-card small">
+      <header><div><p class="eyebrow">IMAGEN DEL PRODUCTO</p><h2>Actualizar imagen</h2><p id="image-product-name" class="muted"></p></div><button type="button" class="modal-close" data-close-dialog="product-image-dialog" aria-label="Cerrar">×</button></header>
+      <input name="productId" type="hidden">
+      <div class="image-upload-panel">
+        <span id="product-image-preview" class="image-preview large" aria-hidden="true">Sin imagen</span>
+        <label>Seleccionar nueva imagen<input name="file" type="file" accept="image/jpeg,image/png,image/webp" required><small>JPEG, PNG o WebP. Máximo 5 MB.</small></label>
+      </div>
+      <p class="form-error" data-form-error hidden></p>
+      <footer><button type="button" class="button secondary" data-close-dialog="product-image-dialog">Cancelar</button><button type="submit" class="button primary compact">Guardar imagen</button></footer>
     </form>
   </dialog>
 
@@ -234,6 +250,6 @@
       <footer><button type="button" class="button secondary" data-close-dialog="user-dialog">Cancelar</button><button type="submit" class="button primary compact">Crear usuario</button></footer>
     </form>
   </dialog>
-  <script src="/js/app.js?v=20260802.1" defer></script>
+  <script src="/js/app.js?v=20260802.2" defer></script>
 </body>
 </html>
